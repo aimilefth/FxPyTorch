@@ -1,0 +1,33 @@
+# FxPyTorch/pyproject.toml
+# This is not a working pyproject.toml, useful for dependency control
+# The versions are not restrictive, just what the library was tested on!
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "FxPyTorch"
+version = "0.1.0"
+authors = [
+  { name="Aimilios Leftheriotis", email="aimilefth@gmail.com" },
+]
+description = "A PyTorch library for fixed-point quantization of neural network layers."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Or your chosen license
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# The versions are not restrictive, just what the library was tested on!
+dependencies = [
+    "torch>=2.2.0",
+    "pydantic>=2.11.3",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/aimilefth/FxPyTorch"
+
+    
