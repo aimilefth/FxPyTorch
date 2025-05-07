@@ -1,8 +1,10 @@
-# tests/fxp_tests.py
+# FxPyTorch/tests/fxp_tests.py
 
 import torch
 import os
 import copy
+from torch.nn.common_types import _size_2_t
+from typing import Union
 
 # Layer and Config Imports
 from ..fxp.fxp_linear import FxPLinear, LinearQConfig
@@ -17,6 +19,7 @@ from ..fxp.fxp_transformer_encoder import (
     FxPTransformerEncoderLayer,
     TransformerEncoderLayerQConfig,
 )
+from ..fxp.fxp_conv2d import FxPConv2D, Conv2DQConfig
 
 # Utility Imports
 from ..transparent.activation_logger import ActivationLogger
@@ -1275,6 +1278,274 @@ def test_fxp_transformer_encoder(
     print("\n" + "=" * 20 + " FxPTransformerEncoderLayer Testing Complete " + "=" * 20)
 
 
+def test_fxp_conv2d(
+    in_channels: int = 10,
+    out_channels: int = 5,
+    kernel_size: _size_2_t = 3,
+    stride: _size_2_t = 1,
+    padding: Union[str, _size_2_t] = 0,
+    dilation: _size_2_t = 1,
+    groups: int = 1,
+    bias: bool = True,
+    padding_mode: str = "zeros",
+    device: str = "cpu",
+    dtype: torch.dtype = torch.float32,
+    batch_size: int = 1,
+    output_path_tests: str = "outputs/fxp_conv2d_tests",
+) -> None:
+    # ------------------------------------------------------------------------------
+    # Configuration & Initialization
+    # ------------------------------------------------------------------------------
+    IN_CHANNELS = in_channels
+    OUT_CHANNELS = out_channels
+    KERNEL_SIZE = kernel_size
+    STRIDE = stride
+    PADDING = padding
+    DILATION = dilation
+    GROUPS = groups
+    BIAS = bias
+    PADDING_MODE = padding_mode
+    DEVICE = device
+    DTYPE = dtype
+    BATCH_SIZE = batch_size
+    OUTPUTS_PATH_TESTS = output_path_tests  # Folder for test outputs
+
+    # Ensure the output directory exists
+    os.makedirs(OUTPUTS_PATH_TESTS, exist_ok=True)
+    print(f"FxPConv2d test outputs will be saved in: {OUTPUTS_PATH_TESTS}")
+
+    # Create a dummy input tensor (for a conv2d layer)
+    data_height = 5
+    data_width = 5
+    dummy_input = torch.ones((BATCH_SIZE, IN_CHANNELS, data_height, data_width))
+    print(f"\nDummy Input Shape: {dummy_input.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 1: Default Float (No explicit QConfig)
+    # ------------------------------------------------------------------------------
+    print("\n" + "=" * 20 + " FxPConv2d Scenario 1: Default Float " + "=" * 20)
+    # Create a layer with no explicit QConfig; it uses the default float behavior.
+    layer1 = FxPConv2D(
+        IN_CHANNELS,
+        OUT_CHANNELS,
+        KERNEL_SIZE,
+        STRIDE,
+        PADDING,
+        DILATION,
+        GROUPS,
+        BIAS,
+        PADDING_MODE,
+        DEVICE,
+        DTYPE,
+    )
+    layer1.eval()  # Set to evaluation mode
+    base_state_dict = layer1.state_dict()  # Store state for later loading
+    print("Layer1 initialized (default float)")
+    # Initialize the activation logger (store full tensors for detailed inspection)
+    logger = ActivationLogger(enabled=True, store_full_tensors=True, model=layer1)
+
+    # Run inference
+    output1 = layer1.forward(dummy_input, logger)
+
+    # Save activation logs
+    log_path1 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_float.json")
+    logger.save_to_json(log_path1)
+
+    print(f"Output1 shape: {output1.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 2: Explicit Float QConfig
+    # ------------------------------------------------------------------------------
+    print("\n" + "=" * 20 + " FxPConv2d Scenario 2: Explicit Float QConfig " + "=" * 20)
+    logger.clear()
+
+    # Create an explicit QConfig (defaults are float)
+    float_qconfig = Conv2DQConfig()
+    print(f"Explicit Float QConfig:\n{float_qconfig.model_dump_json(indent=2)}")
+
+    # Instantiate a layer using the explicit float QConfig and load the baseline state_dict
+    layer2 = FxPConv2D(
+        IN_CHANNELS,
+        OUT_CHANNELS,
+        KERNEL_SIZE,
+        STRIDE,
+        PADDING,
+        DILATION,
+        GROUPS,
+        BIAS,
+        PADDING_MODE,
+        DEVICE,
+        DTYPE,
+        float_qconfig,
+    )
+    layer2.load_state_dict(base_state_dict)
+    layer2.eval()
+    print("Layer2 initialized (explicit float config)")
+
+    # Run inference
+    output2 = layer2(dummy_input, logger=logger)
+
+    # Save activation logs
+    log_path2 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_float2.json")
+    logger.save_to_json(log_path2)
+
+    print(f"Output2 shape: {output2.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 3: High Precision Configuration ("High Precision" Params)
+    # ------------------------------------------------------------------------------
+    print("\n" + "=" * 20 + " FxPConv2d Scenario 3: High Precision Config " + "=" * 20)
+    logger.clear()
+
+    # Create a new layer with a fresh QConfig for high precision
+    layer3_qconfig = Conv2DQConfig()  # Start with default
+    layer3 = FxPConv2D(
+        IN_CHANNELS,
+        OUT_CHANNELS,
+        KERNEL_SIZE,
+        STRIDE,
+        PADDING,
+        DILATION,
+        GROUPS,
+        BIAS,
+        PADDING_MODE,
+        DEVICE,
+        DTYPE,
+        layer3_qconfig,
+    )
+    layer3.load_state_dict(base_state_dict)
+    layer3.eval()
+    print("Layer3 initialized")
+
+    # Configure layer3 for high precision quantization
+    layer3.set_high_precision_quant()
+    print(
+        f"\nLayer3 QConfig after set_high_precision_quant:\n{layer3.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Run inference
+    output3 = layer3(dummy_input, logger=logger)
+
+    # Save activation logs
+    log_path3 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_high_precision.json")
+    logger.save_to_json(log_path3)
+
+    print(f"\nOutput3 shape: {output3.shape}")
+    print(f"Output3:\n{output3}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 4: No Overflow (Fixed Total Bits = 16 for Params)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n" + "=" * 20 + " FxPConv2d Scenario 4: No Overflow (T=16 Params) " + "=" * 20
+    )
+    logger.clear()
+
+    # Create a QConfig specifying only total_bits for weight and bias
+    qconfig4 = Conv2DQConfig(
+        weight=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        bias=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
+        # Input/Activation remain float unless specified
+    )
+    print(f"Initial QConfig4 (partial):\n{qconfig4.model_dump_json(indent=2)}")
+
+    # Instantiate and initialize the layer with qconfig4
+    layer4 = FxPConv2D(
+        IN_CHANNELS,
+        OUT_CHANNELS,
+        KERNEL_SIZE,
+        STRIDE,
+        PADDING,
+        DILATION,
+        GROUPS,
+        BIAS,
+        PADDING_MODE,
+        DEVICE,
+        DTYPE,
+        qconfig4,
+    )
+    layer4.load_state_dict(base_state_dict)
+    layer4.eval()
+    print("Layer4 initialized")
+
+    # Calculate and set the missing fractional bits to avoid overflow
+    layer4.set_no_overflow_quant()
+    print(
+        f"\nLayer4 QConfig after set_no_overflow_quant:\n{layer4.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Run inference
+    output4 = layer4(dummy_input, logger=logger)
+
+    # Save activation logs
+    log_path4 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_t16_no_overflow.json")
+    logger.save_to_json(log_path4)
+
+    print(f"\nOutput4 shape: {output4.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 5: Mixed No Overflow (T=8 Params, T=16/F=8 Activation)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPConv2d Scenario 5: Mixed No Overflow (T=8 Params, 16/8 Act) "
+        + "=" * 20
+    )
+    logger.clear()
+
+    # Create a QConfig with explicit settings for input, weight, bias, and activation
+    qconfig5 = Conv2DQConfig(
+        input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
+        weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
+        bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
+        activation=QType(
+            total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE
+        ),
+    )
+    layer5 = FxPConv2D(
+        IN_CHANNELS,
+        OUT_CHANNELS,
+        KERNEL_SIZE,
+        STRIDE,
+        PADDING,
+        DILATION,
+        GROUPS,
+        BIAS,
+        PADDING_MODE,
+        DEVICE,
+        DTYPE,
+        qconfig5,
+    )
+    layer5.load_state_dict(base_state_dict)
+    layer5.eval()
+    print("Layer5 initialized")
+    print(
+        f"Initial QConfig5 (partial weights/bias, fixed activation):\n{qconfig5.model_dump_json(indent=2)}"
+    )
+
+    # Set no overflow parameters for weights and bias (activation remains unchanged)
+    layer5.set_no_overflow_quant()
+    print(
+        f"\nLayer5 QConfig after set_no_overflow_quant:\n{layer5.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Run inference
+    output5 = layer5(dummy_input, logger=logger)
+
+    # Save activation logs
+    log_path5 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow.json")
+    logger.save_to_json(log_path5)
+
+    print(f"\nOutput5 shape: {output5.shape}")
+    # print(f"Output5:\n{output5}") # Optional: print output
+
+    # ------------------------------------------------------------------------------
+    # Completion Message
+    # ------------------------------------------------------------------------------
+    print("\n" + "=" * 20 + " FxPConv2d Testing Complete " + "=" * 20)
+
+
 # --- Main Execution Block ---
 if __name__ == "__main__":
     print("Starting FxP Layer Tests...")
@@ -1284,5 +1555,6 @@ if __name__ == "__main__":
     test_fxp_layernorm()
     test_fxp_multiheadattention()
     test_fxp_transformer_encoder()
+    test_fxp_conv2d()
     print("\nAll FxP Layer Tests Finished.")
     print("Check the 'outputs/' subdirectories for JSON logs.")
