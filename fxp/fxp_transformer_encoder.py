@@ -1,4 +1,4 @@
-# fxp/fxp_transformer_encoder.py
+# FxPyTorch/fxp/fxp_transformer_encoder.py
 import torch
 from torch import nn
 import torch.nn.functional as F

@@ -1,4 +1,4 @@
-# transparent/trans_transformer_encoder.py
+# FxPyTorch/transparent/trans_transformer_encoder.py
 import torch
 from torch import nn
 from typing import Callable, Optional, Union

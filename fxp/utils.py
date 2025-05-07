@@ -1,4 +1,4 @@
-# fxp/utils.py
+# FxPyTorch/fxp/utils.py
 import torch
 
 # Pydantic imports

@@ -1,4 +1,4 @@
-# fxp/fxp_softmax.py
+# FxPyTorch/fxp/fxp_softmax.py
 import torch
 from .symmetric_quant import (
     QType,

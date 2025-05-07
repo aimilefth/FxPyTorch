@@ -1,4 +1,4 @@
-# transparent/trans_layernorm.py
+# FxPyTorch/transparent/trans_layernorm.py
 import torch
 from torch import nn
 from typing import Optional, Union, List

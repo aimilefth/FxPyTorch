@@ -1,4 +1,4 @@
-# fxp/symmetric_quant.py
+# FxPyTorch/fxp/symmetric_quant.py
 import torch
 import math
 from enum import Enum, auto

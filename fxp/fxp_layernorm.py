@@ -1,4 +1,4 @@
-# fxp/fxp_layernorm.py
+# FxPyTorch/fxp/fxp_layernorm.py
 import torch
 from .symmetric_quant import (
     QType,

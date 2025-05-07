@@ -1,4 +1,4 @@
-# fxp/fxp_multiheadattention.py
+# FxPyTorch/fxp/fxp_multiheadattention.py
 import torch
 from torch import nn
 from .symmetric_quant import (

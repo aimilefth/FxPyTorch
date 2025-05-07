@@ -1,4 +1,4 @@
-# transparent/activation_logger.py
+# FxPyTorch/transparent/activation_logger.py
 
 import torch
 from torch import nn

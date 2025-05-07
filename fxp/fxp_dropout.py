@@ -1,4 +1,4 @@
-# fxp/fxp_dropout.py
+# FxPyTorch/fxp/fxp_dropout.py
 
 import torch
 from .symmetric_quant import (

@@ -1,4 +1,4 @@
-# transparent/trans_linear.py
+# FxPyTorch/transparent/trans_linear.py
 import torch
 from torch import nn
 from typing import Optional

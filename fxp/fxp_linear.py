@@ -1,4 +1,4 @@
-# fxp/fxplinear.py
+# FxPyTorch/fxp/fxplinear.py
 import torch
 import torch.nn.functional as F
 from .symmetric_quant import (
@@ -80,7 +80,7 @@ class FxPLinear(LinearTransparent):
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point
-            return super(FxPLinear, self).forward(input)
+            return super(FxPLinear, self).forward(input, logger)
         with ActivationLoggingScope(logger, self):
             w = self.weight
             b = self.bias

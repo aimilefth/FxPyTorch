@@ -1,4 +1,4 @@
-# transparent/trans_multiheadattention.py
+# FxPyTorch/transparent/trans_multiheadattention.py
 import torch
 from torch import nn
 import torch.nn.functional as F

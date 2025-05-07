@@ -1,4 +1,4 @@
-# transparent/trans_dropout.py
+# FxPyTorch/transparent/trans_dropout.py
 import torch
 from torch import nn
 from typing import Optional
