@@ -74,4 +74,5 @@ def get_tensor_mse(tensor1: torch.Tensor, tensor2: torch.Tensor) -> float:
 
 VALID_CALIBRATION_TYPES = [
     "no_overflow",
+    "min_mse",
 ]

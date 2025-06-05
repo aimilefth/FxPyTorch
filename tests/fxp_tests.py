@@ -267,6 +267,54 @@ def test_fxp_linear(
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
+    # Scenario 7: Mixed No Overflow, MinMSE Calibrated (T=8 Params, T=16 Activation)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPLinear Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Act) "
+        + "=" * 20
+    )
+    logger.clear()
+
+    # Create a QConfig with explicit settings for input, weight, bias, and activation
+    qconfig7 = LinearQConfig(
+        input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
+        weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
+        bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+    )
+    layer7 = FxPLinear(IN_FEATURES, OUT_FEATURES, bias=BIAS, q_config=qconfig7)
+    layer7.load_state_dict(base_state_dict)
+    layer7.eval()
+    print("Layer7 initialized")
+    print(
+        f"Initial QConfig7 (partial weights/bias, fixed activation):\n{qconfig7.model_dump_json(indent=2)}"
+    )
+
+    # Set no overflow parameters for weights and bias (activation remains unchanged)
+    layer7.set_no_overflow_quant()
+    # Calibrate activations
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
+
+    print(
+        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Save activation logs
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_linear_mixed_no_overflow_min_mse_calibration.json"
+    )
+    logger.save_to_json(log_path7)
+
+    print(f"\nOutput7 shape: {output7.shape}")
+
+    # ------------------------------------------------------------------------------
     # Completion Message
     # ------------------------------------------------------------------------------
     print("\n" + "=" * 20 + " FxPLinear Testing Complete " + "=" * 20)
