@@ -7,9 +7,8 @@ from .symmetric_quant import (
     apply_quantize,
     get_high_precision_tensor_quant,
     get_no_overflow_tensor_quant,
-    set_calibrated_activation_quant,
 )
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 from ..transparent.activation_logger import (
     ActivationLogger,
     ActivationLoggingScope,
@@ -21,6 +20,7 @@ from .utils import (
     tensor_to_value_range,
 )
 from ..transparent.trans_linear import LinearTransparent
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 
 class LinearQConfig(QConfig):
@@ -82,7 +82,7 @@ class FxPLinear(LinearTransparent):
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
         calibrate: bool = False,
-        calibration_type: str = "no_overflow",
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point

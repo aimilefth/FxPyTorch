@@ -10,7 +10,6 @@ from .utils import (
     ValueRange,
     tensor_to_value_range,
     get_tensor_mse,
-    VALID_CALIBRATION_TYPES,
 )
 # Symmetrics Linear Quantization with Scaling Factor being power of 2 (float to fixed conversion)
 
@@ -336,22 +335,3 @@ def get_min_mse_tensor_quant(
     if verbose:
         print(mse_list)
     return qtypes_list[index_of_min]
-
-
-def set_calibrated_activation_quant(
-    activation: torch.Tensor,
-    q_type: QType,
-    calibration_type: str = "no_overflow",
-) -> QType:
-    if calibration_type not in VALID_CALIBRATION_TYPES:
-        raise ValueError(f"calibration type is invalid, got: {calibration_type}")
-    if calibration_type == "no_overflow":
-        returned_q_type = get_no_overflow_tensor_quant(activation, q_type)
-    elif calibration_type == "min_mse":
-        returned_q_type = get_min_mse_tensor_quant(activation, q_type)
-    else:
-        raise ValueError(
-            f"calibration type, got: {calibration_type}, passed from VALID_CALIBRATION_TYPES, shouldn't be here"
-        )
-    q_type.total_bits = returned_q_type.total_bits
-    q_type.fractional_bits = returned_q_type.fractional_bits
