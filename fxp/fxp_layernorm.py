@@ -143,7 +143,7 @@ class FxPLayerNorm(LayerNormTransparent):
                 logger.log("mean", mean, self)
                 logger.log("mean_quant", mean_quant, self)
                 logger.log("variance", var, self)
-                logger.log("variance_quant", var, self)
+                logger.log("variance_quant", var_quant, self)
                 logger.log("input_normalized", input_normalized, self)
                 logger.log("input_normalized_quant", input_normalized_quant, self)
                 logger.log("output_pre_quant", output_pre_quant, self)
