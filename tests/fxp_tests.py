@@ -165,18 +165,55 @@ def test_fxp_linear(
     print(f"\nOutput4 shape: {output4.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 5: Mixed No Overflow (T=8 Params, T=16/F=8 Activation)
+    # Scenario 5: Min MSE (Fixed Total Bits = 4 for Params)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n" + "=" * 20 + " FxPLinear Scenario 5: Min MSE (T=4 Params) " + "=" * 20
+    )
+    logger.clear()
+
+    # Create a QConfig specifying only total_bits for weight and bias
+    qconfig5 = LinearQConfig(
+        weight=QType(total_bits=4, q_method=QMethod.ROUND_SATURATE),
+        bias=QType(total_bits=4, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
+        # Input/Activation remain float unless specified
+    )
+    print(f"Initial QConfig5 (partial):\n{qconfig5.model_dump_json(indent=2)}")
+
+    # Instantiate and initialize the layer with qconfig4
+    layer5 = FxPLinear(IN_FEATURES, OUT_FEATURES, bias=BIAS, q_config=qconfig5)
+    layer5.load_state_dict(base_state_dict)
+    layer5.eval()
+    print("Layer5 initialized")
+
+    # Calculate and set the missing fractional bits to avoid overflow
+    layer5.set_min_mse_quant()
+    print(
+        f"\nLayer5 QConfig after set_min_mse_quant:\n{layer5.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Run inference
+    output5 = layer5(dummy_input, logger=logger)
+
+    # Save activation logs
+    log_path5 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_linear_t4_min_mse.json")
+    logger.save_to_json(log_path5)
+
+    print(f"\nOutput5 shape: {output5.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 6: Mixed No Overflow (T=8 Params, T=16/F=8 Activation)
     # ------------------------------------------------------------------------------
     print(
         "\n"
         + "=" * 20
-        + " FxPLinear Scenario 5: Mixed No Overflow (T=8 Params, 16/8 Act) "
+        + " FxPLinear Scenario 6: Mixed No Overflow (T=8 Params, 16/8 Act) "
         + "=" * 20
     )
     logger.clear()
 
     # Create a QConfig with explicit settings for input, weight, bias, and activation
-    qconfig5 = LinearQConfig(
+    qconfig6 = LinearQConfig(
         input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
         weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
         bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
@@ -184,28 +221,28 @@ def test_fxp_linear(
             total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE
         ),
     )
-    layer5 = FxPLinear(IN_FEATURES, OUT_FEATURES, bias=BIAS, q_config=qconfig5)
-    layer5.load_state_dict(base_state_dict)
-    layer5.eval()
-    print("Layer5 initialized")
+    layer6 = FxPLinear(IN_FEATURES, OUT_FEATURES, bias=BIAS, q_config=qconfig6)
+    layer6.load_state_dict(base_state_dict)
+    layer6.eval()
+    print("Layer6 initialized")
     print(
-        f"Initial QConfig5 (partial weights/bias, fixed activation):\n{qconfig5.model_dump_json(indent=2)}"
+        f"Initial QConfig6 (partial weights/bias, fixed activation):\n{qconfig6.model_dump_json(indent=2)}"
     )
 
     # Set no overflow parameters for weights and bias (activation remains unchanged)
-    layer5.set_no_overflow_quant()
+    layer6.set_no_overflow_quant()
     print(
-        f"\nLayer5 QConfig after set_no_overflow_quant:\n{layer5.q_config.model_dump_json(indent=2)}"
+        f"\nLayer6 QConfig after set_no_overflow_quant:\n{layer6.q_config.model_dump_json(indent=2)}"
     )
 
     # Run inference
-    output5 = layer5(dummy_input, logger=logger)
+    output6 = layer6(dummy_input, logger=logger)
 
     # Save activation logs
-    log_path5 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_linear_mixed_no_overflow.json")
-    logger.save_to_json(log_path5)
+    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_linear_mixed_no_overflow.json")
+    logger.save_to_json(log_path6)
 
-    print(f"\nOutput5 shape: {output5.shape}")
+    print(f"\nOutput6 shape: {output6.shape}")
     # print(f"Output5:\n{output5}") # Optional: print output
 
     # ------------------------------------------------------------------------------
