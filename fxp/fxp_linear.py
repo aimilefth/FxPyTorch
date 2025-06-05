@@ -7,7 +7,7 @@ from .symmetric_quant import (
     apply_quantize,
     get_high_precision_tensor_quant,
     get_no_overflow_tensor_quant,
-    get_min_mse_tensor_quant,
+    set_calibrated_activation_quant,
 )
 from typing import Optional, Literal
 from ..transparent.activation_logger import (
@@ -19,8 +19,6 @@ from .symmetric_quant import QConfig
 from .utils import (
     ValueRange,
     tensor_to_value_range,
-    VALID_CALIBRATION_TYPES,
-    get_tensor_mse,
 )
 from ..transparent.trans_linear import LinearTransparent
 
@@ -100,7 +98,7 @@ class FxPLinear(LinearTransparent):
                 b_quant = apply_quantize(b, self._q_config.bias, apply_ste)
             activation = F.linear(input_quant, w_quant, b_quant)
             if calibrate:
-                self._calibrate_activation(
+                set_calibrated_activation_quant(
                     activation, self._q_config.activation, calibration_type
                 )
             activation_quant = apply_quantize(
@@ -185,20 +183,3 @@ class FxPLinear(LinearTransparent):
             self._q_config.weight.fractional_bits = (
                 self._q_config.bias.fractional_bits
             ) = max_total_bits - max_integer_bits
-
-    def _calibrate_activation(
-        self,
-        activation: torch.Tensor,
-        q_type: QType,
-        calibration_type: str = "no_overflow",
-    ) -> None:
-        if calibration_type not in VALID_CALIBRATION_TYPES:
-            raise ValueError(f"calibration type is invalid, got: {calibration_type}")
-        if calibration_type == "no_overflow":
-            returned_q_type = get_no_overflow_tensor_quant(activation, q_type)
-        elif calibration_type == "min_mse":
-            returned_q_type = get_min_mse_tensor_quant(activation, q_type)
-        else:
-            raise ValueError(f"calibration type, got: {calibration_type}, passed from VALID_CALIBRATION_TYPES, shouldn't be here")
-        q_type.total_bits = returned_q_type.total_bits
-        q_type.fractional_bits = returned_q_type.fractional_bits
