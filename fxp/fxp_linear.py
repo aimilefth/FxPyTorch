@@ -7,6 +7,7 @@ from .symmetric_quant import (
     apply_quantize,
     get_high_precision_tensor_quant,
     get_no_overflow_tensor_quant,
+    get_min_mse_tensor_quant,
 )
 from typing import Optional, Literal
 from ..transparent.activation_logger import (
@@ -194,48 +195,10 @@ class FxPLinear(LinearTransparent):
         if calibration_type not in VALID_CALIBRATION_TYPES:
             raise ValueError(f"calibration type is invalid, got: {calibration_type}")
         if calibration_type == "no_overflow":
-            self._set_no_overflow_act_quant(activation, q_type)
+            returned_q_type = get_no_overflow_tensor_quant(activation, q_type)
         elif calibration_type == "min_mse":
-            self._set_min_mse_act_quant(activation, q_type)
-
-    def _set_no_overflow_act_quant(
-        self, activation: torch.Tensor, q_type: QType
-    ) -> None:
-        my_q_type = get_no_overflow_tensor_quant(activation, q_type)
-        q_type.total_bits = my_q_type.total_bits
-        q_type.fractional_bits = my_q_type.fractional_bits
-
-    def _set_min_mse_act_quant(
-        self,
-        activation: torch.Tensor,
-        q_type: QType,
-        depth: int = 10,
-        verbose: bool = False,
-    ) -> None:
-        # Get the 'no-overflow' quantization as a starting point for fractional bits.
-        # This assumes self._q_config.weight.total_bits and q_method are already set.
-        no_overflow_q_type = get_no_overflow_tensor_quant(activation, q_type)
-        mse_list = []
-        qtypes_list = []
-        # Iterate 'depth' times, increasing fractional bits from the no-overflow starting point.
-        for i in range(depth + 1):  # i=0 is no-overflow, i=1..depth are increments
-            current_f_bits = no_overflow_q_type.fractional_bits + i
-            # Create a candidate QType with the current fractional bits.
-            candidate_q_type = QType(
-                total_bits=no_overflow_q_type.total_bits,
-                fractional_bits=current_f_bits,
-                q_method=no_overflow_q_type.q_method,
-            )
-            # Quantize the original weights using the candidate QType.
-            quantized_activation = quantize(activation, candidate_q_type)
-            # Calculate MSE between original and quantized weights.
-            current_mse = get_tensor_mse(activation, quantized_activation)
-            qtypes_list.append(candidate_q_type)
-            mse_list.append(current_mse)
-
-        # Find the index of the QType that resulted in the minimum MSE.
-        index_of_min = mse_list.index(min(mse_list))
-        if verbose:
-            print(mse_list)
-        q_type.total_bits = qtypes_list[index_of_min].total_bits
-        q_type.fractional_bits = qtypes_list[index_of_min].fractional_bits
+            returned_q_type = get_min_mse_tensor_quant(activation, q_type)
+        else:
+            raise ValueError(f"calibration type, got: {calibration_type}, passed from VALID_CALIBRATION_TYPES, shouldn't be here")
+        q_type.total_bits = returned_q_type.total_bits
+        q_type.fractional_bits = returned_q_type.fractional_bits

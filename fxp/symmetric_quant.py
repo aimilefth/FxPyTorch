@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 
 # Pydantic imports
 from pydantic import BaseModel, Field, model_validator, ConfigDict
-from .utils import ValueRange, tensor_to_value_range
+from .utils import ValueRange, tensor_to_value_range, get_tensor_mse
 # Symmetrics Linear Quantization with Scaling Factor being power of 2 (float to fixed conversion)
 
 # 64 BITS MAX TOTAL_BITS
@@ -298,3 +298,36 @@ def get_no_overflow_tensor_quant(x: torch.Tensor, q_type: QType) -> QType:
         )
         return_q_type.total_bits = integer_bits + return_q_type.fractional_bits
     return return_q_type
+
+
+def get_min_mse_tensor_quant(x: torch.Tensor, q_type:QType, depth:int = 10, verbose:bool = False) -> QType:
+    if q_type.total_bits is None:
+        raise ValueError(
+            "Need either total_bits to be specified, got None"
+        )
+    # Get the 'no-overflow' quantization as a starting point for fractional bits.
+    # This assumes self._q_config.weight.total_bits and q_method are already set.
+    no_overflow_q_type = get_no_overflow_tensor_quant(x, q_type)
+    mse_list = []
+    qtypes_list = []
+    # Iterate 'depth' times, increasing fractional bits from the no-overflow starting point.
+    for i in range(depth + 1):  # i=0 is no-overflow, i=1..depth are increments
+        current_f_bits = no_overflow_q_type.fractional_bits + i
+        # Create a candidate QType with the current fractional bits.
+        candidate_q_type = QType(
+            total_bits=no_overflow_q_type.total_bits,
+            fractional_bits=current_f_bits,
+            q_method=no_overflow_q_type.q_method,
+        )
+        # Quantize the original weights using the candidate QType.
+        quantized_x = quantize(x, candidate_q_type)
+        # Calculate MSE between original and quantized weights.
+        current_mse = get_tensor_mse(x, quantized_x)
+        qtypes_list.append(candidate_q_type)
+        mse_list.append(current_mse)
+
+    # Find the index of the QType that resulted in the minimum MSE.
+    index_of_min = mse_list.index(min(mse_list))
+    if verbose:
+        print(mse_list)
+    return qtypes_list[index_of_min]
