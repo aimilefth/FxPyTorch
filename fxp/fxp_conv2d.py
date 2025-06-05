@@ -18,6 +18,7 @@ from .symmetric_quant import QConfig
 from .utils import ValueRange, tensor_to_value_range
 from ..transparent.trans_conv2d import Conv2DTransparent
 from torch.nn.common_types import _size_2_t
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 
 class Conv2DQConfig(QConfig):
@@ -99,6 +100,8 @@ class FxPConv2D(Conv2DTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point
@@ -121,6 +124,10 @@ class FxPConv2D(Conv2DTransparent):
                 self.dilation,
                 self.groups,
             )
+            if calibrate:
+                set_calibrated_activation_quant(
+                    activation, self._q_config.activation, calibration_type
+                )
             activation_quant = apply_quantize(
                 activation, self._q_config.activation, apply_ste
             )

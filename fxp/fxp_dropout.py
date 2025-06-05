@@ -4,15 +4,16 @@ import torch
 from .symmetric_quant import (
     QType,
     apply_quantize,
+    QConfig,
 )
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 from ..transparent.activation_logger import (
     ActivationLogger,
     ActivationLoggingScope,
 )
 from pydantic import Field
-from .symmetric_quant import QConfig
 from ..transparent.trans_dropout import DropoutTransparent
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 
 class DropoutQConfig(QConfig):
@@ -65,6 +66,8 @@ class FxPDropout(DropoutTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point, call DropoutTransparent
@@ -73,6 +76,10 @@ class FxPDropout(DropoutTransparent):
             # STE
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             output_pre_quant = super(FxPDropout, self).forward(input_quant, logger=None)
+            if calibrate:
+                set_calibrated_activation_quant(
+                    output_pre_quant, self._q_config.activation, calibration_type
+                )
             output = apply_quantize(
                 output_pre_quant, self._q_config.activation, apply_ste
             )

@@ -18,7 +18,7 @@ from .utils import ValueRange, tensor_to_value_range
 from ..transparent.trans_layernorm import LayerNormTransparent
 
 from typing import Union, List
-
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 class LayerNormQConfig(QConfig):
     """Quantization configuration specific to FxPLayerNorm layers."""
@@ -91,6 +91,8 @@ class FxPLayerNorm(LayerNormTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point, call LayerNormTransparent
@@ -103,14 +105,26 @@ class FxPLayerNorm(LayerNormTransparent):
             # STE
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             mean = torch.mean(input_quant, dim=dims_to_normalize, keepdim=True)
+            if calibrate:
+                set_calibrated_activation_quant(
+                    mean, self._q_config.mean_tensor, calibration_type
+                )
             mean_quant = apply_quantize(mean, self._q_config.mean_tensor, apply_ste)
             var = torch.var(
                 input_quant, dim=dims_to_normalize, unbiased=False, keepdim=True
             )
+            if calibrate:
+                set_calibrated_activation_quant(
+                    var, self._q_config.var_tensor, calibration_type
+                )
             var_quant = apply_quantize(var, self._q_config.var_tensor, apply_ste)
             input_normalized = (input_quant - mean_quant) / torch.sqrt(
                 var_quant + self.eps
             )
+            if calibrate:
+                set_calibrated_activation_quant(
+                    input_normalized, self._q_config.input_normalized, calibration_type
+                )
             input_normalized_quant = apply_quantize(
                 input_normalized, self._q_config.input_normalized, apply_ste
             )
@@ -134,6 +148,10 @@ class FxPLayerNorm(LayerNormTransparent):
             else:
                 output_pre_quant = input_normalized_quant
 
+            if calibrate:
+                set_calibrated_activation_quant(
+                    output_pre_quant, self._q_config.activation, calibration_type
+                )
             output = apply_quantize(
                 output_pre_quant, self._q_config.activation, apply_ste
             )
