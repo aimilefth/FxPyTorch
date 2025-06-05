@@ -56,3 +56,17 @@ def tensor_to_value_range(tensor: torch.Tensor) -> ValueRange:
     # Create and return the ValueRange instance
     # Pydantic will automatically run the validator upon creation
     return ValueRange(min_val=min_val, max_val=max_val)
+
+
+def get_tensor_mse(tensor1: torch.Tensor, tensor2: torch.Tensor) -> float:
+    """
+    Calculates the Mean Squared Error (MSE) between two tensors.
+
+    The tensors must have the same shape.
+    """
+    if tensor1.shape != tensor2.shape:
+        raise ValueError(
+            f"Input tensors must have the same shape. "
+            f"Got {tensor1.shape} and {tensor2.shape}."
+        )
+    return torch.mean((tensor1 - tensor2) ** 2).item()
