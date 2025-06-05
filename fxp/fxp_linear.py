@@ -15,7 +15,7 @@ from ..transparent.activation_logger import (
 )
 from pydantic import Field
 from .symmetric_quant import QConfig
-from .utils import ValueRange, tensor_to_value_range
+from .utils import ValueRange, tensor_to_value_range, VALID_CALIBRATION_TYPES
 from ..transparent.trans_linear import LinearTransparent
 
 
@@ -77,6 +77,8 @@ class FxPLinear(LinearTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: str = "no_overflow",
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point
@@ -91,6 +93,10 @@ class FxPLinear(LinearTransparent):
             if self.bias is not None:
                 b_quant = apply_quantize(b, self._q_config.bias, apply_ste)
             activation = F.linear(input_quant, w_quant, b_quant)
+            if calibrate:
+                self._calibrate_activation(
+                    activation, self._q_config.activation, calibration_type
+                )
             activation_quant = apply_quantize(
                 activation, self._q_config.activation, apply_ste
             )
@@ -173,3 +179,21 @@ class FxPLinear(LinearTransparent):
             self._q_config.weight.fractional_bits = (
                 self._q_config.bias.fractional_bits
             ) = max_total_bits - max_integer_bits
+
+    def _calibrate_activation(
+        self,
+        activation: torch.Tensor,
+        q_type: QType,
+        calibration_type: str = "no_overflow",
+    ) -> None:
+        if calibration_type not in VALID_CALIBRATION_TYPES:
+            raise ValueError(f"calibration type is invalid, got: {calibration_type}")
+        if calibration_type == "no_overflow":
+            self._set_no_overflow_act_quant(activation, q_type)
+
+    def _set_no_overflow_act_quant(
+        self, activation: torch.Tensor, q_type: QType
+    ) -> None:
+        my_q_type = get_no_overflow_tensor_quant(activation, q_type)
+        q_type.total_bits = my_q_type.total_bits
+        q_type.fractional_bits = my_q_type.fractional_bits

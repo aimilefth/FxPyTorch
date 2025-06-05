@@ -70,3 +70,8 @@ def get_tensor_mse(tensor1: torch.Tensor, tensor2: torch.Tensor) -> float:
             f"Got {tensor1.shape} and {tensor2.shape}."
         )
     return torch.mean((tensor1 - tensor2) ** 2).item()
+
+
+VALID_CALIBRATION_TYPES = [
+    "no_overflow",
+]

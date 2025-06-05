@@ -25,6 +25,12 @@ from ..fxp.fxp_conv2d import FxPConv2D, Conv2DQConfig
 from ..transparent.activation_logger import ActivationLogger
 from ..fxp.symmetric_quant import QType, QMethod
 
+# ------------------------------------------------------------------------------
+# Add a fixed random seed and generator for reproducibility
+SEED = 42
+generator = torch.Generator().manual_seed(SEED)
+# ------------------------------------------------------------------------------
+
 # --- FxPLinear Test (Existing) ---
 
 
@@ -32,6 +38,7 @@ def test_fxp_linear(
     in_features: int = 10,
     out_features: int = 5,
     batch_size: int = 1,
+    calibration_batch_size: int = 128,
     bias: bool = True,
     output_path_tests: str = "outputs/fxp_linear_tests",
 ) -> None:
@@ -43,6 +50,7 @@ def test_fxp_linear(
     BATCH_SIZE = batch_size
     BIAS = bias
     OUTPUTS_PATH_TESTS = output_path_tests  # Folder for test outputs
+    CALIBRATION_BATCH_SIZE = calibration_batch_size
 
     # Ensure the output directory exists
     os.makedirs(OUTPUTS_PATH_TESTS, exist_ok=True)
@@ -50,6 +58,9 @@ def test_fxp_linear(
 
     # Create a dummy input tensor (for a linear layer, shape: [Batch, Features])
     dummy_input = torch.ones((BATCH_SIZE, IN_FEATURES))
+    calibration_dummy_input = torch.randn(
+        (CALIBRATION_BATCH_SIZE, IN_FEATURES), generator=generator
+    )
     print(f"\nDummy Input Shape: {dummy_input.shape}")
 
     # ------------------------------------------------------------------------------
@@ -206,7 +217,54 @@ def test_fxp_linear(
     logger.save_to_json(log_path5)
 
     print(f"\nOutput5 shape: {output5.shape}")
-    # print(f"Output5:\n{output5}") # Optional: print output
+
+    # ------------------------------------------------------------------------------
+    # Scenario 6: Mixed No Overflow Calibrated (T=8 Params, T=16 Activation)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPLinear Scenario 6: Mixed No Overflow Calibrated (T=8 Params, T=16 Act) "
+        + "=" * 20
+    )
+    logger.clear()
+
+    # Create a QConfig with explicit settings for input, weight, bias, and activation
+    qconfig6 = LinearQConfig(
+        input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
+        weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
+        bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+    )
+    layer6 = FxPLinear(IN_FEATURES, OUT_FEATURES, bias=BIAS, q_config=qconfig6)
+    layer6.load_state_dict(base_state_dict)
+    layer6.eval()
+    print("Layer6 initialized")
+    print(
+        f"Initial QConfig6 (partial weights/bias, fixed activation):\n{qconfig6.model_dump_json(indent=2)}"
+    )
+
+    # Set no overflow parameters for weights and bias (activation remains unchanged)
+    layer6.set_no_overflow_quant()
+    # Calibrate activations
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
+
+    print(
+        f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
+    )
+
+    # Save activation logs
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_linear_mixed_no_overflow_calibration.json"
+    )
+    logger.save_to_json(log_path6)
+
+    print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
     # Completion Message
