@@ -203,6 +203,16 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
                     " size is {self.embed_dim}"
                 )
             # STE
+            if calibrate:
+                set_calibrated_activation_quant(
+                    query, self._q_config.input_query, calibration_type
+                )
+                set_calibrated_activation_quant(
+                    key, self._q_config.input_key, calibration_type
+                )
+                set_calibrated_activation_quant(
+                    value, self._q_config.input_value, calibration_type
+                )
             query_quant = apply_quantize(query, self._q_config.input_query, apply_ste)
             key_quant = apply_quantize(key, self._q_config.input_key, apply_ste)
             value_quant = apply_quantize(value, self._q_config.input_value, apply_ste)

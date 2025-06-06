@@ -224,6 +224,10 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
             )
 
             # --- Main Layer Logic ---
+            if calibrate:
+                set_calibrated_activation_quant(
+                    src, self._q_config.input, calibration_type
+                )
             x = apply_quantize(src, self._q_config.input, apply_ste)
             # --- Log Initial Inputs ---
             if logger:

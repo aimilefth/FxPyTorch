@@ -104,6 +104,10 @@ class FxPLayerNorm(LayerNormTransparent):
                 range(input.ndim - len(self.normalized_shape), input.ndim)
             )
             # STE
+            if calibrate:
+                set_calibrated_activation_quant(
+                    input, self._q_config.input, calibration_type
+                )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             mean = torch.mean(input_quant, dim=dims_to_normalize, keepdim=True)
             if calibrate:

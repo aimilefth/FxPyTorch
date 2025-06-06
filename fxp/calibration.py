@@ -29,14 +29,16 @@ def set_calibrated_activation_quant(
     activation: torch.Tensor,
     q_type: QType,
     calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
-) -> QType:
+) -> None:
     # Convert occasional string to CalibrationType
     if isinstance(calibration_type, str):
         try:
             calibration_type = CalibrationType(calibration_type)
         except ValueError as e:
             raise ValueError(f"Invalid calibration_type: {calibration_type}") from e
-
+    if q_type.total_bits is None and q_type.fractional_bits is None:
+        # q_type is NONE -> Therefore no quantization there -> Return without calibrating
+        return
     if calibration_type is CalibrationType.NO_OVERFLOW:
         returned_q_type = get_no_overflow_tensor_quant(activation, q_type)
     elif calibration_type is CalibrationType.MIN_MSE:

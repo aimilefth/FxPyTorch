@@ -91,6 +91,10 @@ class FxPLinear(LinearTransparent):
             w = self.weight
             b = self.bias
             # STE using detach
+            if calibrate:
+                set_calibrated_activation_quant(
+                    input, self._q_config.input, calibration_type
+                )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             w_quant = apply_quantize(w, self._q_config.weight, apply_ste)
             b_quant = None

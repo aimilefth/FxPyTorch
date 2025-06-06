@@ -74,6 +74,10 @@ class FxPDropout(DropoutTransparent):
             return super(FxPDropout, self).forward(input, logger)
         with ActivationLoggingScope(logger, self):
             # STE
+            if calibrate:
+                set_calibrated_activation_quant(
+                    input, self._q_config.input, calibration_type
+                )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             output_pre_quant = super(FxPDropout, self).forward(input_quant, logger=None)
             if calibrate:
