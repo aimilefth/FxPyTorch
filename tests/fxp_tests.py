@@ -490,9 +490,7 @@ def test_fxp_dropout(
 
     qconfig6 = DropoutQConfig(
         input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(
-            total_bits=8, q_method=QMethod.ROUND_SATURATE
-        ),
+        activation=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
     )
     layer6 = FxPDropout(p=DROPOUT_P, q_config=qconfig6)
     layer6.eval()
@@ -501,26 +499,34 @@ def test_fxp_dropout(
 
     # No set_no_overflow_quant() method for Dropout
 
-    output6 = layer6(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='no_overflow')
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
     print(
         f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
     )
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_dropout_mixed_no_overflow_calibration.json")
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_dropout_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"\nOutput6 shape: {output6.shape}")
     # ------------------------------------------------------------------------------
     # Scenario 7: Mixed MinMSE Calibrated (T=16/F=8 Input, T=8 Activation)
     # ------------------------------------------------------------------------------
     print(
-        "\n" + "=" * 20 + " FxPDropout Scenario 7: Mixed MinMSE Calibrated (Acts) " + "=" * 20
+        "\n"
+        + "=" * 20
+        + " FxPDropout Scenario 7: Mixed MinMSE Calibrated (Acts) "
+        + "=" * 20
     )
     logger.clear()
 
     qconfig7 = DropoutQConfig(
         input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(
-            total_bits=8, q_method=QMethod.ROUND_SATURATE
-        ),
+        activation=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
     )
     layer7 = FxPDropout(p=DROPOUT_P, q_config=qconfig7)
     layer7.eval()
@@ -529,11 +535,18 @@ def test_fxp_dropout(
 
     # No set_no_overflow_quant() method for Dropout
 
-    output7 = layer7(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='min_mse')
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
     print(
         f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_dropout_mixed_min_mse_calibration.json")
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_dropout_mixed_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"\nOutput7 shape: {output7.shape}")
 
@@ -702,7 +715,10 @@ def test_fxp_softmax(
     # Scenario 6: Mixed No Overflow Calibrated (T=16/F=10 Input, T=8 Activation)
     # ------------------------------------------------------------------------------
     print(
-        "\n" + "=" * 20 + " FxPSoftmax Scenario 6: Mixed No Overflow Calibrated (Acts) " + "=" * 20
+        "\n"
+        + "=" * 20
+        + " FxPSoftmax Scenario 6: Mixed No Overflow Calibrated (Acts) "
+        + "=" * 20
     )
     logger.clear()
 
@@ -721,11 +737,18 @@ def test_fxp_softmax(
 
     # No set_no_overflow_quant() method
 
-    output6 = layer6(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='no_overflow')
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
     print(
         f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
     )
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_softmax_mixed_no_overflow_calibration.json")
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_softmax_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"\nOutput6 shape: {output6.shape}")
 
@@ -733,7 +756,10 @@ def test_fxp_softmax(
     # Scenario 7:  Mixed MinMSE Calibrated (T=16/F=10 Input, T=8 Activation)
     # ------------------------------------------------------------------------------
     print(
-        "\n" + "=" * 20 + " FxPSoftmax Scenario 7: Mixed MinMSE Calibrated (Acts) " + "=" * 20
+        "\n"
+        + "=" * 20
+        + " FxPSoftmax Scenario 7: Mixed MinMSE Calibrated (Acts) "
+        + "=" * 20
     )
     logger.clear()
 
@@ -752,11 +778,18 @@ def test_fxp_softmax(
 
     # No set_no_overflow_quant() method
 
-    output7 = layer7(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='min_mse')
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
     print(
         f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_softmax_mixed_min_mse_calibration.json")
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_softmax_mixed_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"\nOutput7 shape: {output7.shape}")
 
@@ -792,9 +825,9 @@ def test_fxp_layernorm(
 
     # Create dummy input tensor
     dummy_input = torch.randn((BATCH_SIZE, FEATURES)) * 5 + 2  # Add offset and scale
-    calibration_dummy_input = torch.randn(
-        (CALIBRATION_BATCH_SIZE, FEATURES), generator=generator
-    ) * 5 + 2  # Add offset and scale
+    calibration_dummy_input = (
+        torch.randn((CALIBRATION_BATCH_SIZE, FEATURES), generator=generator) * 5 + 2
+    )  # Add offset and scale
     print(f"\nDummy Input Shape: {dummy_input.shape}")
     print(f"Input Range: [{dummy_input.min():.2f}, {dummy_input.max():.2f}]")
 
@@ -997,7 +1030,12 @@ def test_fxp_layernorm(
     # ------------------------------------------------------------------------------
     # Scenario 6: Mixed No Overflow Calibrated (T=8 Params, T=16 Others)
     # ------------------------------------------------------------------------------
-    print("\n" + "=" * 20 + " FxPLayerNorm Scenario 6: Mixed No Overflow Calibrated" + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPLayerNorm Scenario 6: Mixed No Overflow Calibrated"
+        + "=" * 20
+    )
     logger.clear()
 
     # Define T=8 for weight/bias, T=16for others
@@ -1007,18 +1045,10 @@ def test_fxp_layernorm(
         if AFFINE
         else QType(),
         bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
-        mean_tensor=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        var_tensor=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        input_normalized=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        activation=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
+        mean_tensor=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        var_tensor=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        input_normalized=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
     )
     layer6 = FxPLayerNorm(
         NORMALIZED_SHAPE,
@@ -1036,20 +1066,31 @@ def test_fxp_layernorm(
     # Set no overflow frac bits for T=8 weight/bias (if affine)
     if AFFINE:
         layer6.set_no_overflow_quant()
-    output6 = layer6(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='no_overflow')
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
     print(
         f"\nLayer6 QConfig after set_no_overflow_quant and calibration (if affine):\n{layer6.q_config.model_dump_json(indent=2)}"
     )
 
-
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_no_overflow_calibration.json")
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
     # Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Others)
     # ------------------------------------------------------------------------------
-    print("\n" + "=" * 20 + " FxPLayerNorm Scenario 7: Mixed No Overflow MinMSE Calibrated" + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPLayerNorm Scenario 7: Mixed No Overflow MinMSE Calibrated"
+        + "=" * 20
+    )
     logger.clear()
 
     # Define T=8 for weight/bias, T=16for others
@@ -1059,18 +1100,10 @@ def test_fxp_layernorm(
         if AFFINE
         else QType(),
         bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
-        mean_tensor=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        var_tensor=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        input_normalized=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
-        activation=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
+        mean_tensor=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        var_tensor=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        input_normalized=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
     )
     layer7 = FxPLayerNorm(
         NORMALIZED_SHAPE,
@@ -1088,13 +1121,19 @@ def test_fxp_layernorm(
     # Set no overflow frac bits for T=8 weight/bias (if affine)
     if AFFINE:
         layer7.set_no_overflow_quant()
-    output7 = layer7(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='min_mse')
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
     print(
         f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration (if affine):\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
-
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_no_overflow_min_mse_calibration.json")
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_no_overflow_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"\nOutput7 shape: {output7.shape}")
 
@@ -1106,6 +1145,7 @@ def test_fxp_multiheadattention(
     num_heads: int = 2,  # Must divide embed_dim
     seq_len: int = 8,
     batch_size: int = 4,
+    calibration_batch_size: int = 128,
     dropout: float = 0.1,  # Corresponds to dropout AFTER softmax * V
     bias: bool = True,  # Bias for out_proj
     add_bias_kv: bool = False,  # Bias for K and V projections
@@ -1125,6 +1165,7 @@ def test_fxp_multiheadattention(
     ADD_BIAS_KV = add_bias_kv
     ADD_BIAS_Q = add_bias_q
     OUTPUTS_PATH_TESTS = output_path_tests
+    CALIBRATION_BATCH_SIZE = calibration_batch_size
 
     os.makedirs(OUTPUTS_PATH_TESTS, exist_ok=True)
     print(
@@ -1133,6 +1174,9 @@ def test_fxp_multiheadattention(
 
     # Create dummy input tensor (common for query, key, value in self-attention)
     dummy_input = torch.ones((BATCH_SIZE, SEQ_LEN, EMBED_DIM))
+    calibration_dummy_input = torch.randn(
+        (CALIBRATION_BATCH_SIZE, SEQ_LEN, EMBED_DIM), generator=generator
+    )
     print(f"\nDummy Input Shape (Query/Key/Value): {dummy_input.shape}")
     print(f"Input Range: [{dummy_input.min():.2f}, {dummy_input.max():.2f}]")
 
@@ -1382,6 +1426,199 @@ def test_fxp_multiheadattention(
     log_path5 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_mha_mixed_no_overflow.json")
     logger.save_to_json(log_path5)
     print(f"\nOutput5 shape: {output5.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 6: Mixed No Overflow Calibrated (T=8 Params, T=16 Others)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n" + "=" * 20 + " FxPMHA Scenario 6: Mixed No Overflow Calibrated" + "=" * 20
+    )
+    logger.clear()
+
+    # Define QConfig: T=8 for params, T=16 for others
+    t16_qtype = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
+    t8_param_qtype = QType(
+        total_bits=8, q_method=QMethod.ROUND_SATURATE
+    )  # Only T=8 for params
+
+    t8_linear_qconfig = LinearQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8_param_qtype),
+        bias=copy.deepcopy(t8_param_qtype)
+        if BIAS or ADD_BIAS_KV or ADD_BIAS_Q
+        else QType(),
+        activation=copy.deepcopy(t16_qtype),
+    )
+    # Reuse T=16 configs for softmax/dropout from Scenario 4
+    t16_softmax_qconfig = SoftmaxQConfig(
+        input=QType(),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+    )  # Activation doesnt need more than 1 integer
+    t16_dropout_qconfig = DropoutQConfig(
+        input=QType(), activation=copy.deepcopy(t16_qtype)
+    )
+
+    qconfig6 = MultiheadAttentionQConfig(
+        input_query=QType(),
+        input_key=QType(),
+        input_value=QType(),
+        qlinear=copy.deepcopy(t8_linear_qconfig),
+        klinear=copy.deepcopy(t8_linear_qconfig),
+        vlinear=copy.deepcopy(t8_linear_qconfig),
+        q_scaled=copy.deepcopy(t16_qtype),
+        attn_scores_raw=copy.deepcopy(
+            t16_qtype
+        ),  # Raw scores might need more range? TBD
+        softmax=t16_softmax_qconfig,
+        dropout=t16_dropout_qconfig,
+        attn_output=copy.deepcopy(t16_qtype),
+        out_proj=copy.deepcopy(t8_linear_qconfig),
+    )
+    # Handle biases specifically
+    if not ADD_BIAS_Q:
+        qconfig6.qlinear.bias = QType()
+    if not ADD_BIAS_KV:
+        qconfig6.klinear.bias = QType()
+        qconfig6.vlinear.bias = QType()
+    if not BIAS:
+        qconfig6.out_proj.bias = QType()
+
+    print(
+        f"Initial QConfig6 (partial T=8 params):\n{qconfig6.model_dump_json(indent=2)}"
+    )
+
+    layer6 = FxPMultiheadAttention(
+        embed_dim=EMBED_DIM,
+        num_heads=NUM_HEADS,
+        dropout=DROPOUT,
+        bias=BIAS,
+        add_bias_kv=ADD_BIAS_KV,
+        add_bias_q=ADD_BIAS_Q,
+        batch_first=True,
+        q_config=qconfig6,
+    )
+    layer6.load_state_dict(base_state_dict)
+    layer6.eval()
+    print("Layer6 initialized")
+
+    # Calculate fractional bits for T=8 parameters
+    layer6.set_no_overflow_quant()
+    output6, _ = layer6(
+        calibration_dummy_input,
+        calibration_dummy_input,
+        calibration_dummy_input,
+        logger=logger,
+        need_weights=False,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
+    print(
+        f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
+    )
+
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_mha_mixed_no_overflow_calibration.json"
+    )
+    logger.save_to_json(log_path6)
+    print(f"\nOutput6 shape: {output6.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Others)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPMHA Scenario 7: Mixed No Overflow MinMSE Calibrated"
+        + "=" * 20
+    )
+    logger.clear()
+
+    # Define QConfig: T=8 for params, T=16 for others
+    t16_qtype = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
+    t8_param_qtype = QType(
+        total_bits=8, q_method=QMethod.ROUND_SATURATE
+    )  # Only T=8 for params
+
+    t8_linear_qconfig = LinearQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8_param_qtype),
+        bias=copy.deepcopy(t8_param_qtype)
+        if BIAS or ADD_BIAS_KV or ADD_BIAS_Q
+        else QType(),
+        activation=copy.deepcopy(t16_qtype),
+    )
+    # Reuse T=16 configs for softmax/dropout from Scenario 4
+    t16_softmax_qconfig = SoftmaxQConfig(
+        input=QType(),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
+    )  # Activation doesnt need more than 1 integer
+    t16_dropout_qconfig = DropoutQConfig(
+        input=QType(), activation=copy.deepcopy(t16_qtype)
+    )
+
+    qconfig7 = MultiheadAttentionQConfig(
+        input_query=QType(),
+        input_key=QType(),
+        input_value=QType(),
+        qlinear=copy.deepcopy(t8_linear_qconfig),
+        klinear=copy.deepcopy(t8_linear_qconfig),
+        vlinear=copy.deepcopy(t8_linear_qconfig),
+        q_scaled=copy.deepcopy(t16_qtype),
+        attn_scores_raw=copy.deepcopy(
+            t16_qtype
+        ),  # Raw scores might need more range? TBD
+        softmax=t16_softmax_qconfig,
+        dropout=t16_dropout_qconfig,
+        attn_output=copy.deepcopy(t16_qtype),
+        out_proj=copy.deepcopy(t8_linear_qconfig),
+    )
+    # Handle biases specifically
+    if not ADD_BIAS_Q:
+        qconfig7.qlinear.bias = QType()
+    if not ADD_BIAS_KV:
+        qconfig7.klinear.bias = QType()
+        qconfig7.vlinear.bias = QType()
+    if not BIAS:
+        qconfig7.out_proj.bias = QType()
+
+    print(
+        f"Initial QConfig7 (partial T=8 params):\n{qconfig7.model_dump_json(indent=2)}"
+    )
+
+    layer7 = FxPMultiheadAttention(
+        embed_dim=EMBED_DIM,
+        num_heads=NUM_HEADS,
+        dropout=DROPOUT,
+        bias=BIAS,
+        add_bias_kv=ADD_BIAS_KV,
+        add_bias_q=ADD_BIAS_Q,
+        batch_first=True,
+        q_config=qconfig7,
+    )
+    layer7.load_state_dict(base_state_dict)
+    layer7.eval()
+    print("Layer7 initialized")
+
+    # Calculate fractional bits for T=8 parameters
+    layer7.set_no_overflow_quant()
+    output7, _ = layer7(
+        calibration_dummy_input,
+        calibration_dummy_input,
+        calibration_dummy_input,
+        logger=logger,
+        need_weights=False,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
+    print(
+        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+    )
+
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_mha_mixed_no_overflow_min_mse_calibration.json"
+    )
+    logger.save_to_json(log_path7)
+    print(f"\nOutput7 shape: {output7.shape}")
 
     print("\n" + "=" * 20 + " FxPMultiheadAttention Testing Complete " + "=" * 20)
 
@@ -1665,7 +1902,8 @@ def test_fxp_conv2d(
     data_width = 5
     dummy_input = torch.ones((BATCH_SIZE, IN_CHANNELS, data_height, data_width))
     calibration_dummy_input = torch.randn(
-        (CALIBRATION_BATCH_SIZE, IN_CHANNELS, data_height, data_width), generator=generator
+        (CALIBRATION_BATCH_SIZE, IN_CHANNELS, data_height, data_width),
+        generator=generator,
     )
     print(f"\nDummy Input Shape: {dummy_input.shape}")
 
@@ -1904,9 +2142,7 @@ def test_fxp_conv2d(
         input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
         weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
         bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
-        activation=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
     )
     layer6 = FxPConv2D(
         IN_CHANNELS,
@@ -1932,20 +2168,25 @@ def test_fxp_conv2d(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer6.set_no_overflow_quant()
     # Run inference
-    output6 = layer6(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='no_overflow')
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
     print(
         f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
     )
 
-
-
     # Save activation logs
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_calibration.json")
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
 
     print(f"\nOutput6 shape: {output6.shape}")
 
-   # ------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
     # Scenario 7: Mixed No Overflow Min MSE Calibrated (T=8 Params, T=16 Activation)
     # ------------------------------------------------------------------------------
     print(
@@ -1961,9 +2202,7 @@ def test_fxp_conv2d(
         input=QType(total_bits=16, fractional_bits=8, q_method=QMethod.ROUND_SATURATE),
         weight=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE),
         bias=QType(total_bits=8, q_method=QMethod.ROUND_SATURATE) if BIAS else QType(),
-        activation=QType(
-            total_bits=16, q_method=QMethod.ROUND_SATURATE
-        ),
+        activation=QType(total_bits=16, q_method=QMethod.ROUND_SATURATE),
     )
     layer7 = FxPConv2D(
         IN_CHANNELS,
@@ -1989,15 +2228,20 @@ def test_fxp_conv2d(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer7.set_no_overflow_quant()
     # Run inference
-    output7 = layer7(calibration_dummy_input, logger=logger, calibrate=True, calibration_type='min_mse')
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
     print(
         f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
-
-
     # Save activation logs
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_min_mse_calibration.json")
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
 
     print(f"\nOutput7 shape: {output7.shape}")

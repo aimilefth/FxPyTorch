@@ -20,6 +20,7 @@ from ..transparent.trans_layernorm import LayerNormTransparent
 from typing import Union, List
 from .calibration import set_calibrated_activation_quant, CalibrationType
 
+
 class LayerNormQConfig(QConfig):
     """Quantization configuration specific to FxPLayerNorm layers."""
 

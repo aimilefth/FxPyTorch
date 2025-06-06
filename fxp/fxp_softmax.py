@@ -14,6 +14,7 @@ from pydantic import Field
 from ..transparent.trans_softmax import SoftmaxTransparent
 from .calibration import set_calibrated_activation_quant, CalibrationType
 
+
 class SoftmaxQConfig(QConfig):
     """Quantization configuration specific to FxPSoftmax layers."""
 

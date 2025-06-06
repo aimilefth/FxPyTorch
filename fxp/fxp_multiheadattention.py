@@ -4,15 +4,15 @@ from torch import nn
 from .symmetric_quant import (
     QType,
     apply_quantize,
+    QConfig,
 )
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 from ..transparent.activation_logger import (
     ActivationLogger,
     ActivationLoggingScope,
 )
 from pydantic import Field
 from typing import Tuple
-from .symmetric_quant import QConfig
 from ..transparent.trans_multiheadattention import (
     MultiheadAttentionTransparent,
 )
@@ -20,6 +20,7 @@ from .fxp_dropout import FxPDropout, DropoutQConfig
 from .fxp_softmax import FxPSoftmax, SoftmaxQConfig
 from .fxp_linear import FxPLinear, LinearQConfig
 import warnings
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 
 class MultiheadAttentionQConfig(QConfig):
@@ -162,6 +163,8 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
         is_causal: bool = False,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         if self._q_config is None:
             # Floating point, call DropoutTransparent
@@ -220,11 +223,33 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
             )  # Already checked divisibility in init
             scaling = float(head_dim) ** -0.5
 
-            q_quant = self.qlinear(query_quant, logger=logger, apply_ste=apply_ste)
-            k_quant = self.klinear(key_quant, logger=logger, apply_ste=apply_ste)
-            v_quant = self.vlinear(value_quant, logger=logger, apply_ste=apply_ste)
+            q_quant = self.qlinear(
+                query_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
+            )
+            k_quant = self.klinear(
+                key_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
+            )
+            v_quant = self.vlinear(
+                value_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
+            )
 
             q_scaled = q_quant * scaling
+            if calibrate:
+                set_calibrated_activation_quant(
+                    q_scaled, self._q_config.q_scaled, calibration_type
+                )
             q_scaled_quant = apply_quantize(
                 q_scaled, self._q_config.q_scaled, apply_ste
             )
@@ -303,6 +328,10 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
 
             # Calculate Attention Scores (original logic)
             attn_scores_raw = torch.bmm(q, k.transpose(1, 2))
+            if calibrate:
+                set_calibrated_activation_quant(
+                    attn_scores_raw, self._q_config.attn_scores_raw, calibration_type
+                )
             attn_scores_raw_quant = apply_quantize(
                 attn_scores_raw, self._q_config.attn_scores_raw, apply_ste
             )
@@ -347,7 +376,11 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
                     )
 
             attn_weights_softmax_quant = self.softmax(
-                attn_scores_raw_quant, logger=logger, apply_ste=apply_ste
+                attn_scores_raw_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             if logger:
                 logger.log(
@@ -360,7 +393,11 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
 
             # Dropout (original logic - using the module)
             attn_weights_dropout_quant = self.dropout(
-                attn_weights_softmax_quant, logger=logger, apply_ste=apply_ste
+                attn_weights_softmax_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             # Log attn_output_weights after dropout
             if logger:
@@ -372,6 +409,10 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
                     self,
                 )
             attn_output = torch.bmm(attn_weights_dropout_quant, v)
+            if calibrate:
+                set_calibrated_activation_quant(
+                    attn_output, self._q_config.attn_output, calibration_type
+                )
             attn_output_quant = apply_quantize(
                 attn_output, self._q_config.attn_output, apply_ste
             )
@@ -397,7 +438,11 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
                 logger.log("attn_output_quant_reshaped_BxTxE", concat_output, self)
 
             total_output_quant = self.out_proj(
-                concat_output, logger=logger, apply_ste=apply_ste
+                concat_output,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             # Log total_output
             if logger:
