@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from .symmetric_quant import (
     QType,
     apply_quantize,
+    QConfig,
 )
 from typing import Optional, Literal, Callable, Union
 from ..transparent.activation_logger import (
@@ -12,7 +13,6 @@ from ..transparent.activation_logger import (
     ActivationLoggingScope,
 )
 from pydantic import Field
-from .symmetric_quant import QConfig
 from ..transparent.trans_transformer_encoder import (
     TransformerEncoderLayerTransparent,
 )
@@ -24,6 +24,7 @@ from .fxp_multiheadattention import (
     MultiheadAttentionQConfig,
 )
 from .fxp_layernorm import FxPLayerNorm, LayerNormQConfig
+from .calibration import set_calibrated_activation_quant, CalibrationType
 
 
 class TransformerEncoderLayerQConfig(QConfig):
@@ -194,6 +195,8 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
         # ----- New arguments for verbose logging -----
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point, call TransformerEncoderLayerTransparent
@@ -231,7 +234,13 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
 
             if self.norm_first:
                 # 1. LayerNorm
-                norm1_out = self.norm1(x, logger=logger, apply_ste=apply_ste)
+                norm1_out = self.norm1(
+                    x,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
                 # 2. Self-Attention (+ dropout) + Residual
                 # Pass verbose flags down. return_log_dict is passed as verbose to signal MHA
                 # to *collect* logs if verbose is True, regardless of whether *this* layer returns them.
@@ -245,25 +254,51 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                     is_causal=False,
                     logger=logger,
                     apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )[0]
 
                 sa_dropout_out = self.dropout(
-                    attention_out, logger=logger, apply_ste=apply_ste
+                    attention_out,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )
                 residual_1 = x + sa_dropout_out  # First residual connection
+                if calibrate:
+                    set_calibrated_activation_quant(
+                        residual_1, self._q_config.residual_1, calibration_type
+                    )
                 x = apply_quantize(residual_1, self._q_config.residual_1, apply_ste)
                 if logger:
                     logger.log("residual1_after_attn", residual_1, self)
                     logger.log("residual1_after_attn_quant", x, self)
 
                 # 3. LayerNorm
-                norm2_out = self.norm2(x, logger=logger, apply_ste=apply_ste)
+                norm2_out = self.norm2(
+                    x,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
 
                 # 4. Feed Forward (+ dropout) + Residual
                 # Pass the log target to the helper block
-                ff_out = self._ff_block(norm2_out, logger=logger, apply_ste=apply_ste)
+                ff_out = self._ff_block(
+                    norm2_out,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
 
                 residual_2 = x + ff_out  # Second residual connection
+                if calibrate:
+                    set_calibrated_activation_quant(
+                        residual_2, self._q_config.residual_2, calibration_type
+                    )
                 x = apply_quantize(residual_2, self._q_config.residual_2, apply_ste)
                 if logger:
                     logger.log("residual_2_pre_quant", residual_2, self)
@@ -281,13 +316,23 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                     is_causal=False,
                     logger=logger,
                     apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )[0]
 
                 sa_dropout_out = self.dropout(
-                    attention_out, logger=logger, apply_ste=apply_ste
+                    attention_out,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )
 
                 add1_out = x + sa_dropout_out  # Add before norm
+                if calibrate:
+                    set_calibrated_activation_quant(
+                        add1_out, self._q_config.residual_1, calibration_type
+                    )
                 add1_out_quant = apply_quantize(
                     add1_out, self._q_config.residual_1, apply_ste
                 )
@@ -296,14 +341,28 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                     logger.log("residual1_after_attn_quant", add1_out_quant, self)
 
                 x = self.norm1(
-                    add1_out_quant, logger=logger, apply_ste=apply_ste
+                    add1_out_quant,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )  # First LayerNorm (post-add)
 
                 # 2. Feed Forward (+ dropout) + Residual + LayerNorm
                 # Pass the log target to the helper block
-                ff_out = self._ff_block(x, logger=logger, apply_ste=apply_ste)
+                ff_out = self._ff_block(
+                    x,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
 
                 add2_out = x + ff_out  # Add before norm
+                if calibrate:
+                    set_calibrated_activation_quant(
+                        add2_out, self._q_config.residual_2, calibration_type
+                    )
                 add2_out_quant = apply_quantize(
                     add2_out, self._q_config.residual_2, apply_ste
                 )
@@ -312,7 +371,11 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                     logger.log("residual2_after_ffn_output_quant", add2_out_quant, self)
 
                 x = self.norm2(
-                    add2_out_quant, logger=logger, apply_ste=apply_ste
+                    add2_out_quant,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )  # Second LayerNorm (post-add)
                 if logger:
                     logger.log("output", x, self)
@@ -327,6 +390,8 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
         x: torch.Tensor,
         logger: Optional[ActivationLogger],
         apply_ste: bool = True,
+        calibrate: bool = False,
+        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         # ---------- FLOATING‑POINT PATH ----------
         if self._q_config is None:
@@ -334,8 +399,18 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
             return TransformerEncoderLayerTransparent._ff_block(self, x, logger)
         # ---------- QUANTISED PATH (current code) ----------
         with ActivationLoggingScope(logger, "ffn"):
-            linear1_out = self.linear1(x, logger=logger, apply_ste=apply_ste)
+            linear1_out = self.linear1(
+                x,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
+            )
             act_out = self.activation(linear1_out)
+            if calibrate:
+                set_calibrated_activation_quant(
+                    act_out, self._q_config.ff_activation, calibration_type
+                )
             act_out_quant = apply_quantize(
                 act_out, self._q_config.ff_activation, apply_ste
             )
@@ -344,13 +419,25 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                 logger.log("ff_activation_quant", act_out_quant, self)
 
             dropout_act_out = self.dropout1(
-                act_out_quant, logger=logger, apply_ste=apply_ste
+                act_out_quant,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             linear2_out = self.linear2(
-                dropout_act_out, logger=logger, apply_ste=apply_ste
+                dropout_act_out,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             ff_dropout_out = self.dropout2(
-                linear2_out, logger=logger, apply_ste=apply_ste
+                linear2_out,
+                logger=logger,
+                apply_ste=apply_ste,
+                calibrate=calibrate,
+                calibration_type=calibration_type,
             )
             if logger:
                 logger.log("output", ff_dropout_out, self)  # This is the block output

@@ -1628,6 +1628,7 @@ def test_fxp_transformer_encoder(
     num_heads: int = 2,
     seq_len: int = 8,
     batch_size: int = 4,
+    calibration_batch_size: int = 128,
     dim_feedforward: int = 8,
     dropout: float = 0.1,
     att_dropout: float = 0.0,
@@ -1640,6 +1641,9 @@ def test_fxp_transformer_encoder(
 
     # Dummy input tensor: [B, T, E]
     dummy_input = torch.ones((batch_size, seq_len, d_model))
+    calibration_dummy_input = torch.randn(
+        (calibration_batch_size, seq_len, d_model), generator=generator
+    )
     print(f"Dummy Input Shape: {dummy_input.shape}")
 
     # ------------------------------------------------------------------------------
@@ -1855,6 +1859,183 @@ def test_fxp_transformer_encoder(
     )
     logger.save_to_json(log_path5)
     print(f"Output5 shape: {output5.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 6: Mixed no‐overflow Calibrated (T=8 bits weights, T=16 elsewhere)
+    # ------------------------------------------------------------------------------
+    print("\n" + "=" * 20 + " Scenario 6: Mixed No Overflow Calibrated " + "=" * 20)
+    logger.clear()
+    t8 = QType(total_bits=8, q_method=QMethod.ROUND_SATURATE)
+    t16 = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
+    # FF linears params & activation
+    linear_qconfig6 = LinearQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8),
+        bias=copy.deepcopy(t8),
+        activation=copy.deepcopy(t16),
+    )
+    t16_softmax_qconfig = SoftmaxQConfig(
+        input=QType(),
+        activation=copy.deepcopy(t16),
+    )  # Activation doesnt need more than 1 integer
+    t16_dropout_qconfig = DropoutQConfig(input=QType(), activation=copy.deepcopy(t16))
+    mha_qconfig6 = MultiheadAttentionQConfig(
+        input_query=QType(),
+        input_key=QType(),
+        input_value=QType(),
+        qlinear=copy.deepcopy(
+            linear_qconfig6
+        ),  # Use deepcopy to avoid aliasing issues if modifying later
+        klinear=copy.deepcopy(linear_qconfig6),
+        vlinear=copy.deepcopy(linear_qconfig6),
+        q_scaled=copy.deepcopy(t16),
+        attn_scores_raw=copy.deepcopy(t16),  # Raw scores might need more range? TBD
+        softmax=t16_softmax_qconfig,
+        dropout=t16_dropout_qconfig,
+        attn_output=copy.deepcopy(t16),
+        out_proj=copy.deepcopy(linear_qconfig6),
+    )
+    layernorm_qconfig6 = LayerNormQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8),
+        bias=copy.deepcopy(t8),
+        mean_tensor=copy.deepcopy(t16),
+        var_tensor=copy.deepcopy(t16),
+        input_normalized=copy.deepcopy(t16),
+        activation=copy.deepcopy(t16),
+    )
+    qconfig6 = TransformerEncoderLayerQConfig(
+        input=QType(),
+        norm1=copy.deepcopy(layernorm_qconfig6),
+        self_attn=copy.deepcopy(mha_qconfig6),
+        self_attn_dropout=copy.deepcopy(t16_dropout_qconfig),
+        residual_1=copy.deepcopy(t16),
+        norm2=copy.deepcopy(layernorm_qconfig6),
+        linear1=copy.deepcopy(linear_qconfig6),
+        ff_activation=copy.deepcopy(t16),
+        dropout1=copy.deepcopy(t16_dropout_qconfig),
+        linear2=copy.deepcopy(linear_qconfig6),
+        dropout2=copy.deepcopy(t16_dropout_qconfig),
+        residual_2=copy.deepcopy(t16),
+    )
+    print(f"Initial QConfig6 (partial):\n{qconfig6.model_dump_json(indent=2)}")
+    layer6 = FxPTransformerEncoderLayer(
+        d_model=d_model,
+        nhead=num_heads,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+        att_dropout=att_dropout,
+        batch_first=True,
+        q_config=qconfig6,
+    )
+    layer6.load_state_dict(base_state_dict)
+    layer6.eval()
+    layer6.set_no_overflow_quant()
+    output6 = layer6(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
+    )
+    print(
+        f"Layer6 QConfig after set_no_overflow_quant and calibration:\n"
+        f"{layer6.q_config.model_dump_json(indent=2)}"
+    )
+    log_path6 = os.path.join(
+        output_path_tests, "fxp_transformer_encoder_mixed_no_overflow_calibration.json"
+    )
+    logger.save_to_json(log_path6)
+    print(f"Output6 shape: {output6.shape}")
+
+    # ------------------------------------------------------------------------------
+    # Scenario 7: Mixed no‐overflow MinMSE Calibrated (T=8 bits weights, T=16 elsewhere)
+    # ------------------------------------------------------------------------------
+    print(
+        "\n" + "=" * 20 + " Scenario 7: Mixed No Overflow MinMSE Calibrated " + "=" * 20
+    )
+    logger.clear()
+    t8 = QType(total_bits=8, q_method=QMethod.ROUND_SATURATE)
+    t16 = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
+    # FF linears params & activation
+    linear_qconfig7 = LinearQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8),
+        bias=copy.deepcopy(t8),
+        activation=copy.deepcopy(t16),
+    )
+    t16_softmax_qconfig = SoftmaxQConfig(
+        input=QType(),
+        activation=copy.deepcopy(t16),
+    )  # Activation doesnt need more than 1 integer
+    t16_dropout_qconfig = DropoutQConfig(input=QType(), activation=copy.deepcopy(t16))
+    mha_qconfig7 = MultiheadAttentionQConfig(
+        input_query=QType(),
+        input_key=QType(),
+        input_value=QType(),
+        qlinear=copy.deepcopy(
+            linear_qconfig7
+        ),  # Use deepcopy to avoid aliasing issues if modifying later
+        klinear=copy.deepcopy(linear_qconfig7),
+        vlinear=copy.deepcopy(linear_qconfig7),
+        q_scaled=copy.deepcopy(t16),
+        attn_scores_raw=copy.deepcopy(t16),  # Raw scores might need more range? TBD
+        softmax=t16_softmax_qconfig,
+        dropout=t16_dropout_qconfig,
+        attn_output=copy.deepcopy(t16),
+        out_proj=copy.deepcopy(linear_qconfig7),
+    )
+    layernorm_qconfig7 = LayerNormQConfig(
+        input=QType(),
+        weight=copy.deepcopy(t8),
+        bias=copy.deepcopy(t8),
+        mean_tensor=copy.deepcopy(t16),
+        var_tensor=copy.deepcopy(t16),
+        input_normalized=copy.deepcopy(t16),
+        activation=copy.deepcopy(t16),
+    )
+    qconfig7 = TransformerEncoderLayerQConfig(
+        input=QType(),
+        norm1=copy.deepcopy(layernorm_qconfig7),
+        self_attn=copy.deepcopy(mha_qconfig7),
+        self_attn_dropout=copy.deepcopy(t16_dropout_qconfig),
+        residual_1=copy.deepcopy(t16),
+        norm2=copy.deepcopy(layernorm_qconfig7),
+        linear1=copy.deepcopy(linear_qconfig7),
+        ff_activation=copy.deepcopy(t16),
+        dropout1=copy.deepcopy(t16_dropout_qconfig),
+        linear2=copy.deepcopy(linear_qconfig7),
+        dropout2=copy.deepcopy(t16_dropout_qconfig),
+        residual_2=copy.deepcopy(t16),
+    )
+    print(f"Initial QConfig7 (partial):\n{qconfig7.model_dump_json(indent=2)}")
+    layer7 = FxPTransformerEncoderLayer(
+        d_model=d_model,
+        nhead=num_heads,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+        att_dropout=att_dropout,
+        batch_first=True,
+        q_config=qconfig7,
+    )
+    layer7.load_state_dict(base_state_dict)
+    layer7.eval()
+    layer7.set_no_overflow_quant()
+    output7 = layer7(
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
+    )
+    print(
+        f"Layer7 QConfig after set_no_overflow_quant and min_mse calibration:\n"
+        f"{layer7.q_config.model_dump_json(indent=2)}"
+    )
+    log_path7 = os.path.join(
+        output_path_tests,
+        "fxp_transformer_encoder_mixed_no_overflow_min_mse_calibration.json",
+    )
+    logger.save_to_json(log_path7)
+    print(f"Output7 shape: {output7.shape}")
 
     print("\n" + "=" * 20 + " FxPTransformerEncoderLayer Testing Complete " + "=" * 20)
 
