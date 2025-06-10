@@ -50,6 +50,8 @@ class FxPLinear(LinearTransparent):
             in_features, out_features, bias=bias, device=device, dtype=dtype
         )
         self._q_config = q_config
+        self.calibrate: bool = False,
+        self.calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
 
     @property
     def q_config(self) -> LinearQConfig:
@@ -81,8 +83,6 @@ class FxPLinear(LinearTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
-        calibrate: bool = False,
-        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point
@@ -91,9 +91,9 @@ class FxPLinear(LinearTransparent):
             w = self.weight
             b = self.bias
             # STE using detach
-            if calibrate:
+            if self.calibrate:
                 set_calibrated_activation_quant(
-                    input, self._q_config.input, calibration_type
+                    input, self._q_config.input, self.calibration_type
                 )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             w_quant = apply_quantize(w, self._q_config.weight, apply_ste)
@@ -101,9 +101,9 @@ class FxPLinear(LinearTransparent):
             if self.bias is not None:
                 b_quant = apply_quantize(b, self._q_config.bias, apply_ste)
             activation = F.linear(input_quant, w_quant, b_quant)
-            if calibrate:
+            if self.calibrate:
                 set_calibrated_activation_quant(
-                    activation, self._q_config.activation, calibration_type
+                    activation, self._q_config.activation, self.calibration_type
                 )
             activation_quant = apply_quantize(
                 activation, self._q_config.activation, apply_ste
@@ -119,6 +119,14 @@ class FxPLinear(LinearTransparent):
                 logger.log("activation", activation, self)
                 logger.log("output", output, self)
         return output
+    #CHANGE: set function for calibration mode
+    def turn_on_calibration(self, calibration_type):
+        self.calibrate = True
+        self.calibration_type = calibration_type
+
+    def turn_off_calibration(self):
+        self.calibrate = False
+        self.calibration_type = None
 
     def quantize_weights_bias(self) -> None:
         self.weight.data.copy_(quantize(self.weight, self._q_config.weight))

@@ -247,12 +247,12 @@ def test_fxp_linear(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer6.set_no_overflow_quant()
     # Calibrate activations
+    layer6.turn_on_calibration(calibration_type="no_overflow")
     output6 = layer6(
         calibration_dummy_input,
         logger=logger,
-        calibrate=True,
-        calibration_type="no_overflow",
     )
+    layer6.turn_off_calibration()
 
     print(
         f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
@@ -295,12 +295,12 @@ def test_fxp_linear(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer7.set_no_overflow_quant()
     # Calibrate activations
+    layer7.turn_on_calibration(calibration_type="min_mse")
     output7 = layer7(
         calibration_dummy_input,
         logger=logger,
-        calibrate=True,
-        calibration_type="min_mse",
     )
+    layer7.turn_off_calibration()
 
     print(
         f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
@@ -2349,16 +2349,15 @@ def test_fxp_conv2d(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer6.set_no_overflow_quant()
     # Run inference
+    layer6.turn_on_calibration(calibration_type="no_overflow")
     output6 = layer6(
         calibration_dummy_input,
         logger=logger,
-        calibrate=True,
-        calibration_type="no_overflow",
     )
     print(
         f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
     )
-
+    layer6.turn_off_calibration()
     # Save activation logs
     log_path6 = os.path.join(
         OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_calibration.json"
@@ -2409,12 +2408,12 @@ def test_fxp_conv2d(
     # Set no overflow parameters for weights and bias (activation remains unchanged)
     layer7.set_no_overflow_quant()
     # Run inference
+    layer7.turn_on_calibration(calibration_type="min_mse")
     output7 = layer7(
         calibration_dummy_input,
         logger=logger,
-        calibrate=True,
-        calibration_type="min_mse",
     )
+    layer7.turn_off_calibration()
     print(
         f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )

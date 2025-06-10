@@ -64,6 +64,10 @@ class FxPConv2D(Conv2DTransparent):
         )
         self._q_config = q_config
 
+        #CHANGE: calibrate and calibration_type variables
+        self.calibrate: bool = False
+        self.calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW
+
     """
     The @property decorator is used to define "getter" methods for class attributes, but it 
     allows you to access them like regular attributes (without calling them with parentheses ()).
@@ -100,8 +104,6 @@ class FxPConv2D(Conv2DTransparent):
         input: torch.Tensor,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
-        calibrate: bool = False,
-        calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
     ) -> torch.Tensor:
         if self._q_config is None:
             # Floating point
@@ -110,9 +112,9 @@ class FxPConv2D(Conv2DTransparent):
             w = self.weight
             b = self.bias
             # STE using detach
-            if calibrate:
+            if self.calibrate:
                 set_calibrated_activation_quant(
-                    input, self._q_config.input, calibration_type
+                    input, self._q_config.input, self.calibration_type
                 )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
             w_quant = apply_quantize(w, self._q_config.weight, apply_ste)
@@ -128,9 +130,9 @@ class FxPConv2D(Conv2DTransparent):
                 self.dilation,
                 self.groups,
             )
-            if calibrate:
+            if self.calibrate:
                 set_calibrated_activation_quant(
-                    activation, self._q_config.activation, calibration_type
+                    activation, self._q_config.activation, self.calibration_type
                 )
             activation_quant = apply_quantize(
                 activation, self._q_config.activation, apply_ste
@@ -146,6 +148,14 @@ class FxPConv2D(Conv2DTransparent):
                 logger.log("activation", activation, self)
                 logger.log("output", output, self)
         return output
+    #CHANGE: set function for calibration mode
+    def turn_on_calibration(self, calibration_type):
+        self.calibrate = True
+        self.calibration_type = calibration_type
+
+    def turn_off_calibration(self):
+        self.calibrate = False
+        self.calibration_type = None
 
     def quantize_weights_bias(self) -> None:
         self.weight.data.copy_(quantize(self.weight, self._q_config.weight))
