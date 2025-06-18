@@ -50,8 +50,10 @@ class FxPLinear(LinearTransparent):
             in_features, out_features, bias=bias, device=device, dtype=dtype
         )
         self._q_config = q_config
-        self.calibrate: bool = False,
-        self.calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW,
+        
+        #CHANGE: calibrate and calibration_type variables
+        self.calibrate: bool = False
+        self.calibration_type: Union[str, CalibrationType] = CalibrationType.NO_OVERFLOW
 
     @property
     def q_config(self) -> LinearQConfig:
