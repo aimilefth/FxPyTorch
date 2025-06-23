@@ -267,12 +267,12 @@ def test_fxp_linear(
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 7: Mixed No Overflow, MinMSE Calibrated (T=8 Params, T=16 Activation)
+    # Scenario 7: Mixed MinMSE Calibrated (T=8 Params, T=16 Activation)
     # ------------------------------------------------------------------------------
     print(
         "\n"
         + "=" * 20
-        + " FxPLinear Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Act) "
+        + " FxPLinear Scenario 7: Mixed MinMSE Calibrated (T=8 Params, T=16 Act) "
         + "=" * 20
     )
     logger.clear()
@@ -292,8 +292,8 @@ def test_fxp_linear(
         f"Initial QConfig7 (partial weights/bias, fixed activation):\n{qconfig7.model_dump_json(indent=2)}"
     )
 
-    # Set no overflow parameters for weights and bias (activation remains unchanged)
-    layer7.set_no_overflow_quant()
+    # Set min_mse parameters for weights and bias (activation remains unchanged)
+    layer7.set_min_mse_quant()
     # Calibrate activations
     output7 = layer7(
         calibration_dummy_input,
@@ -303,12 +303,12 @@ def test_fxp_linear(
     )
 
     print(
-        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+        f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
     # Save activation logs
     log_path7 = os.path.join(
-        OUTPUTS_PATH_TESTS, "fxp_linear_mixed_no_overflow_min_mse_calibration.json"
+        OUTPUTS_PATH_TESTS, "fxp_linear_mixed_min_mse_calibration.json"
     )
     logger.save_to_json(log_path7)
 
@@ -1083,13 +1083,10 @@ def test_fxp_layernorm(
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Others)
+    # Scenario 7: Mixed MinMSE Calibrated (T=8 Params, T=16 Others)
     # ------------------------------------------------------------------------------
     print(
-        "\n"
-        + "=" * 20
-        + " FxPLayerNorm Scenario 7: Mixed No Overflow MinMSE Calibrated"
-        + "=" * 20
+        "\n" + "=" * 20 + " FxPLayerNorm Scenario 7: Mixed MinMSE Calibrated" + "=" * 20
     )
     logger.clear()
 
@@ -1120,7 +1117,7 @@ def test_fxp_layernorm(
 
     # Set no overflow frac bits for T=8 weight/bias (if affine)
     if AFFINE:
-        layer7.set_no_overflow_quant()
+        layer7.set_min_mse_quant()
     output7 = layer7(
         calibration_dummy_input,
         logger=logger,
@@ -1128,11 +1125,11 @@ def test_fxp_layernorm(
         calibration_type="min_mse",
     )
     print(
-        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration (if affine):\n{layer7.q_config.model_dump_json(indent=2)}"
+        f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration (if affine):\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
     log_path7 = os.path.join(
-        OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_no_overflow_min_mse_calibration.json"
+        OUTPUTS_PATH_TESTS, "fxp_layernorm_mixed_min_mse_calibration.json"
     )
     logger.save_to_json(log_path7)
     print(f"\nOutput7 shape: {output7.shape}")
@@ -1523,14 +1520,9 @@ def test_fxp_multiheadattention(
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 7: Mixed No Overflow MinMSE Calibrated (T=8 Params, T=16 Others)
+    # Scenario 7: Mixed MinMSE Calibrated (T=8 Params, T=16 Others)
     # ------------------------------------------------------------------------------
-    print(
-        "\n"
-        + "=" * 20
-        + " FxPMHA Scenario 7: Mixed No Overflow MinMSE Calibrated"
-        + "=" * 20
-    )
+    print("\n" + "=" * 20 + " FxPMHA Scenario 7: Mixed MinMSE Calibrated" + "=" * 20)
     logger.clear()
 
     # Define QConfig: T=8 for params, T=16 for others
@@ -1600,7 +1592,7 @@ def test_fxp_multiheadattention(
     print("Layer7 initialized")
 
     # Calculate fractional bits for T=8 parameters
-    layer7.set_no_overflow_quant()
+    layer7.set_min_mse_quant()
     output7, _ = layer7(
         calibration_dummy_input,
         calibration_dummy_input,
@@ -1611,11 +1603,11 @@ def test_fxp_multiheadattention(
         calibration_type="min_mse",
     )
     print(
-        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+        f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
     log_path7 = os.path.join(
-        OUTPUTS_PATH_TESTS, "fxp_mha_mixed_no_overflow_min_mse_calibration.json"
+        OUTPUTS_PATH_TESTS, "fxp_mha_mixed_min_mse_calibration.json"
     )
     logger.save_to_json(log_path7)
     print(f"\nOutput7 shape: {output7.shape}")
@@ -1948,11 +1940,9 @@ def test_fxp_transformer_encoder(
     print(f"Output6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 7: Mixed no‐overflow MinMSE Calibrated (T=8 bits weights, T=16 elsewhere)
+    # Scenario 7: Mixed MinMSE Calibrated (T=8 bits weights, T=16 elsewhere)
     # ------------------------------------------------------------------------------
-    print(
-        "\n" + "=" * 20 + " Scenario 7: Mixed No Overflow MinMSE Calibrated " + "=" * 20
-    )
+    print("\n" + "=" * 20 + " Scenario 7: Mixed MinMSE Calibrated " + "=" * 20)
     logger.clear()
     t8 = QType(total_bits=8, q_method=QMethod.ROUND_SATURATE)
     t16 = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
@@ -2019,7 +2009,7 @@ def test_fxp_transformer_encoder(
     )
     layer7.load_state_dict(base_state_dict)
     layer7.eval()
-    layer7.set_no_overflow_quant()
+    layer7.set_min_mse_quant()
     output7 = layer7(
         calibration_dummy_input,
         logger=logger,
@@ -2027,12 +2017,12 @@ def test_fxp_transformer_encoder(
         calibration_type="min_mse",
     )
     print(
-        f"Layer7 QConfig after set_no_overflow_quant and min_mse calibration:\n"
+        f"Layer7 QConfig after set_min_mse_quant and min_mse calibration:\n"
         f"{layer7.q_config.model_dump_json(indent=2)}"
     )
     log_path7 = os.path.join(
         output_path_tests,
-        "fxp_transformer_encoder_mixed_no_overflow_min_mse_calibration.json",
+        "fxp_transformer_encoder_mixed_min_mse_calibration.json",
     )
     logger.save_to_json(log_path7)
     print(f"Output7 shape: {output7.shape}")
@@ -2368,12 +2358,12 @@ def test_fxp_conv2d(
     print(f"\nOutput6 shape: {output6.shape}")
 
     # ------------------------------------------------------------------------------
-    # Scenario 7: Mixed No Overflow Min MSE Calibrated (T=8 Params, T=16 Activation)
+    # Scenario 7: Mixed Min MSE Calibrated (T=8 Params, T=16 Activation)
     # ------------------------------------------------------------------------------
     print(
         "\n"
         + "=" * 20
-        + " FxPConv2d Scenario 7: Mixed No Overflow Min MSE Calibrated (T=8 Params, 16 Act) "
+        + " FxPConv2d Scenario 7: Mixed Min MSE Calibrated (T=8 Params, 16 Act) "
         + "=" * 20
     )
     logger.clear()
@@ -2407,7 +2397,7 @@ def test_fxp_conv2d(
     )
 
     # Set no overflow parameters for weights and bias (activation remains unchanged)
-    layer7.set_no_overflow_quant()
+    layer7.set_min_mse_quant()
     # Run inference
     output7 = layer7(
         calibration_dummy_input,
@@ -2416,12 +2406,12 @@ def test_fxp_conv2d(
         calibration_type="min_mse",
     )
     print(
-        f"\nLayer7 QConfig after set_no_overflow_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+        f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
     )
 
     # Save activation logs
     log_path7 = os.path.join(
-        OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_no_overflow_min_mse_calibration.json"
+        OUTPUTS_PATH_TESTS, "fxp_conv2d_mixed_min_mse_calibration.json"
     )
     logger.save_to_json(log_path7)
 

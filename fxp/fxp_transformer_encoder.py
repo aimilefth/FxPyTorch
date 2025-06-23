@@ -540,12 +540,13 @@ class FxPTransformerEncoderLayer(TransformerEncoderLayerTransparent):
                 self.linear2.q_config.bias.fractional_bits
             ) = max_total_bits_b - max_integer_bits_b
 
-    def set_min_mse_quant(self, depth:int = 10) -> None:
+    def set_min_mse_quant(self, depth: int = 10) -> None:
         self.norm1.set_min_mse_quant(depth)
         self.self_attn.set_min_mse_quant(depth)
         self.norm2.set_min_mse_quant(depth)
         self.linear1.set_min_mse_quant(depth)
         self.linear2.set_min_mse_quant(depth)
+
 
 def _get_activation_fn(activation: str) -> Callable[[torch.Tensor], torch.Tensor]:
     if activation == "relu":
