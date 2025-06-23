@@ -635,3 +635,9 @@ class FxPMultiheadAttention(MultiheadAttentionTransparent):
             ) = self.vlinear.q_config.bias.fractional_bits = (
                 max_total_bits_b - max_integer_bits_b
             )
+
+    def set_min_mse_quant(self, depth:int = 10) -> None:
+        self.qlinear.set_min_mse_quant(depth)
+        self.klinear.set_min_mse_quant(depth)
+        self.vlinear.set_min_mse_quant(depth)
+        self.out_proj.set_min_mse_quant(depth)

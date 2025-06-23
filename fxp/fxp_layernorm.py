@@ -6,6 +6,7 @@ from .symmetric_quant import (
     apply_quantize,
     get_high_precision_tensor_quant,
     get_no_overflow_tensor_quant,
+    get_min_mse_tensor_quant,
 )
 from typing import Optional, Literal
 from ..transparent.activation_logger import (
@@ -244,3 +245,18 @@ class FxPLayerNorm(LayerNormTransparent):
             self._q_config.weight.fractional_bits = (
                 self._q_config.bias.fractional_bits
             ) = max_total_bits - max_integer_bits
+
+    def set_min_mse_w_quant(self, depth:int = 10) -> None:
+        q_type = get_min_mse_tensor_quant(self.weight.data, self._q_config.weight, depth)
+        self.q_config.weight.total_bits = q_type.total_bits
+        self.q_config.weight.fractional_bits = q_type.fractional_bits
+
+    def set_min_mse_b_quant(self, depth:int = 10) -> None:
+        if self.bias is not None:
+            q_type = get_min_mse_tensor_quant(self.bias.data, self._q_config.bias, depth)
+            self.q_config.bias.total_bits = q_type.total_bits
+            self.q_config.bias.fractional_bits = q_type.fractional_bits         
+
+    def set_min_mse_quant(self, depth:int = 10) -> None:
+        self.set_min_mse_w_quant()
+        self.set_min_mse_b_quant()

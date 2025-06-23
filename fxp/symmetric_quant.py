@@ -308,7 +308,7 @@ def get_min_mse_tensor_quant(
     x: torch.Tensor, q_type: QType, depth: int = 10, verbose: bool = False
 ) -> QType:
     if q_type.total_bits is None:
-        raise ValueError("Need either total_bits to be specified, got None")
+        raise ValueError("Need total_bits to be specified, got None")
     # Get the 'no-overflow' quantization as a starting point for fractional bits.
     # This assumes self._q_config.weight.total_bits and q_method are already set.
     no_overflow_q_type = get_no_overflow_tensor_quant(x, q_type)
