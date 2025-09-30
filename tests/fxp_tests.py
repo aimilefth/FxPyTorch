@@ -2813,13 +2813,29 @@ def test_fxp_lstm(
         bias=copy.deepcopy(t8_param) if BIAS else QType(),
         activation=copy.deepcopy(t16f8),
     )
+    t16_sigmoid_cfg = SigmoidQConfig(
+        input=copy.deepcopy(t16f8),
+        activation=copy.deepcopy(t16f8),
+    )
+
+    t16_tanh_cfg = TanhQConfig(
+        input=copy.deepcopy(t16f8),
+        activation=copy.deepcopy(t16f8),
+    )
+
     qconfig5 = LSTMQConfig(
         input=copy.deepcopy(t16f8),
         h0=copy.deepcopy(t16f8),
         c0=copy.deepcopy(t16f8),
         w_ih=copy.deepcopy(t8_linear_cfg),
         w_hh=copy.deepcopy(t8_linear_cfg),
-        # Gate activations left default (float) for brevity
+        i_act=copy.deepcopy(t16_sigmoid_cfg),
+        f_act=copy.deepcopy(t16_sigmoid_cfg),
+        g_act=copy.deepcopy(t16_tanh_cfg),
+        o_act=copy.deepcopy(t16_sigmoid_cfg),
+        ct_tanh=copy.deepcopy(t16_tanh_cfg),
+        i_dot_g=copy.deepcopy(t16f8),
+        f_dot_c_t=copy.deepcopy(t16f8),
         c_t=copy.deepcopy(t16f8),
         h_t=copy.deepcopy(t16f8),
         output=copy.deepcopy(t16f8),
@@ -2853,12 +2869,27 @@ def test_fxp_lstm(
         bias=copy.deepcopy(t8_param2) if BIAS else QType(),
         activation=copy.deepcopy(t16_any),
     )
+    t16_sigmoid_cfg2 = SigmoidQConfig(
+        input=QType(),
+        activation=copy.deepcopy(t16_any),
+    )
+    t16_tanh_cfg2 = TanhQConfig(
+        input=QType(),
+        activation=copy.deepcopy(t16_any),
+    )
     qconfig6 = LSTMQConfig(
         input=QType(),
         h0=QType(),
         c0=QType(),
         w_ih=copy.deepcopy(t8_lin_cfg2),
         w_hh=copy.deepcopy(t8_lin_cfg2),
+        i_act=copy.deepcopy(t16_sigmoid_cfg2),
+        f_act=copy.deepcopy(t16_sigmoid_cfg2),
+        g_act=copy.deepcopy(t16_tanh_cfg2),
+        o_act=copy.deepcopy(t16_sigmoid_cfg2),
+        ct_tanh=copy.deepcopy(t16_tanh_cfg2),
+        i_dot_g=copy.deepcopy(t16_any),
+        f_dot_c_t=copy.deepcopy(t16_any),        
         c_t=copy.deepcopy(t16_any),
         h_t=copy.deepcopy(t16_any),
         output=copy.deepcopy(t16_any),
@@ -2895,6 +2926,13 @@ def test_fxp_lstm(
         c0=QType(),
         w_ih=copy.deepcopy(t8_lin_cfg2),
         w_hh=copy.deepcopy(t8_lin_cfg2),
+        i_act=copy.deepcopy(t16_sigmoid_cfg2),
+        f_act=copy.deepcopy(t16_sigmoid_cfg2),
+        g_act=copy.deepcopy(t16_tanh_cfg2),
+        o_act=copy.deepcopy(t16_sigmoid_cfg2),
+        ct_tanh=copy.deepcopy(t16_tanh_cfg2),
+        i_dot_g=copy.deepcopy(t16_any),
+        f_dot_c_t=copy.deepcopy(t16_any),        
         c_t=copy.deepcopy(t16_any),
         h_t=copy.deepcopy(t16_any),
         output=copy.deepcopy(t16_any),
