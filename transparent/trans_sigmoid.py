@@ -7,6 +7,7 @@ from .activation_logger import (
     ActivationLoggingScope,
 )
 
+
 class SigmoidTransparent(nn.Module):
     def __init__(self):
         super().__init__()

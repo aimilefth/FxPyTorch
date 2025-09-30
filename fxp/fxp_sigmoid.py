@@ -10,10 +10,12 @@ from .symmetric_quant import QType, QConfig, apply_quantize
 from ..transparent.trans_sigmoid import SigmoidTransparent
 from .calibration import set_calibrated_activation_quant, CalibrationType
 
+
 class SigmoidQConfig(QConfig):
     layer_type: Literal["sigmoid"] = "sigmoid"
     input: QType = Field(default_factory=QType)
     activation: QType = Field(default_factory=QType)
+
 
 class FxPSigmoid(SigmoidTransparent):
     def __init__(self, q_config: Optional[SigmoidQConfig] = None) -> None:
@@ -47,15 +49,21 @@ class FxPSigmoid(SigmoidTransparent):
 
         with ActivationLoggingScope(logger, self):
             if calibrate:
-                set_calibrated_activation_quant(input, self._q_config.input, calibration_type)
+                set_calibrated_activation_quant(
+                    input, self._q_config.input, calibration_type
+                )
             input_quant = apply_quantize(input, self._q_config.input, apply_ste)
 
             # compute in float, then quantize activation (softmax-style)
             output_pre_quant = super().forward(input_quant, logger=None)
 
             if calibrate:
-                set_calibrated_activation_quant(output_pre_quant, self._q_config.activation, calibration_type)
-            output = apply_quantize(output_pre_quant, self._q_config.activation, apply_ste)
+                set_calibrated_activation_quant(
+                    output_pre_quant, self._q_config.activation, calibration_type
+                )
+            output = apply_quantize(
+                output_pre_quant, self._q_config.activation, apply_ste
+            )
 
             if logger:
                 logger.log("input", input, self)

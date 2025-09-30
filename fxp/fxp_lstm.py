@@ -15,13 +15,14 @@ from .fxp_sigmoid import FxPSigmoid, SigmoidQConfig
 from .fxp_tanh import FxPTanh, TanhQConfig
 from .calibration import set_calibrated_activation_quant, CalibrationType
 
+
 class LSTMQConfig(QConfig):
     layer_type: Literal["lstm"] = "lstm"
 
     # Inputs / initial states
     input: QType = Field(default_factory=QType)
-    h0:    QType = Field(default_factory=QType)
-    c0:    QType = Field(default_factory=QType)
+    h0: QType = Field(default_factory=QType)
+    c0: QType = Field(default_factory=QType)
 
     # Linear projections (nested configs)
     w_ih: LinearQConfig = Field(default_factory=LinearQConfig)  # x_t -> 4H
@@ -30,24 +31,26 @@ class LSTMQConfig(QConfig):
     # Gate activations (modules get these q_configs)
     i_act: SigmoidQConfig = Field(default_factory=SigmoidQConfig)
     f_act: SigmoidQConfig = Field(default_factory=SigmoidQConfig)
-    g_act: TanhQConfig    = Field(default_factory=TanhQConfig)
+    g_act: TanhQConfig = Field(default_factory=TanhQConfig)
     o_act: SigmoidQConfig = Field(default_factory=SigmoidQConfig)
-    ct_tanh: TanhQConfig  = Field(default_factory=TanhQConfig)  # tanh(c_t)
+    ct_tanh: TanhQConfig = Field(default_factory=TanhQConfig)  # tanh(c_t)
 
     # Explicit intermediate quant points
-    i_dot_g:   QType = Field(default_factory=QType)
+    i_dot_g: QType = Field(default_factory=QType)
     f_dot_c_t: QType = Field(default_factory=QType)
 
     # States / outputs
-    c_t:   QType = Field(default_factory=QType)
-    h_t:   QType = Field(default_factory=QType)
+    c_t: QType = Field(default_factory=QType)
+    h_t: QType = Field(default_factory=QType)
     output: QType = Field(default_factory=QType)
+
 
 class FxPLSTM(LSTMTransparent):
     """
     Quantised LSTM (single layer, batch_first) with explicit quant points and calibration,
     mirroring the design used in FxPMultiheadAttention.
     """
+
     def __init__(
         self,
         input_size: int,
@@ -60,7 +63,7 @@ class FxPLSTM(LSTMTransparent):
         dtype=None,
         q_config: Optional[LSTMQConfig] = None,
         sigmoid_fun: Type[nn.Module] = FxPSigmoid,
-        tanh_fun:    Type[nn.Module] = FxPTanh,
+        tanh_fun: Type[nn.Module] = FxPTanh,
     ) -> None:
         # Build transparent baseline (names of submodules are preserved)
         super().__init__(
@@ -80,19 +83,27 @@ class FxPLSTM(LSTMTransparent):
         if self._q_config is not None:
             # Swap projections for quantised ones
             self.w_ih = FxPLinear(
-                input_size, 4 * hidden_size, bias=bias,
-                q_config=self._q_config.w_ih, device=device, dtype=dtype,
+                input_size,
+                4 * hidden_size,
+                bias=bias,
+                q_config=self._q_config.w_ih,
+                device=device,
+                dtype=dtype,
             )
             self.w_hh = FxPLinear(
-                hidden_size, 4 * hidden_size, bias=bias,
-                q_config=self._q_config.w_hh, device=device, dtype=dtype,
+                hidden_size,
+                4 * hidden_size,
+                bias=bias,
+                q_config=self._q_config.w_hh,
+                device=device,
+                dtype=dtype,
             )
             # Per-gate activation modules with their q_configs
             self.sigmoid_i = sigmoid_fun(q_config=self._q_config.i_act)
             self.sigmoid_f = sigmoid_fun(q_config=self._q_config.f_act)
             self.sigmoid_o = sigmoid_fun(q_config=self._q_config.o_act)
-            self.tanh_g    = tanh_fun(q_config=self._q_config.g_act)
-            self.tanh_ct   = tanh_fun(q_config=self._q_config.ct_tanh)
+            self.tanh_g = tanh_fun(q_config=self._q_config.g_act)
+            self.tanh_ct = tanh_fun(q_config=self._q_config.ct_tanh)
 
     @property
     def q_config(self) -> Optional[LSTMQConfig]:
@@ -105,9 +116,14 @@ class FxPLSTM(LSTMTransparent):
         else:
             # copy top-level QTypes
             for name in (
-                "input", "h0", "c0",
-                "i_dot_g", "f_dot_c_t",
-                "c_t", "h_t", "output",
+                "input",
+                "h0",
+                "c0",
+                "i_dot_g",
+                "f_dot_c_t",
+                "c_t",
+                "h_t",
+                "output",
             ):
                 setattr(self._q_config, name, getattr(new_q_config, name))
         # re-wire nested configs via submodules’ setters
@@ -116,12 +132,12 @@ class FxPLSTM(LSTMTransparent):
         self.sigmoid_i.q_config = new_q_config.i_act
         self.sigmoid_f.q_config = new_q_config.f_act
         self.sigmoid_o.q_config = new_q_config.o_act
-        self.tanh_g.q_config    = new_q_config.g_act
-        self.tanh_ct.q_config   = new_q_config.ct_tanh
+        self.tanh_g.q_config = new_q_config.g_act
+        self.tanh_ct.q_config = new_q_config.ct_tanh
 
     def forward(
         self,
-        input: torch.Tensor,                                   # (B, T, input_size)
+        input: torch.Tensor,  # (B, T, input_size)
         hx: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         logger: Optional[ActivationLogger] = None,
         apply_ste: bool = True,
@@ -146,9 +162,15 @@ class FxPLSTM(LSTMTransparent):
 
             # Calibrate + quantise initial states / input stream
             if calibrate:
-                set_calibrated_activation_quant(h_t, self._q_config.h0, calibration_type)
-                set_calibrated_activation_quant(c_t, self._q_config.c0, calibration_type)
-                set_calibrated_activation_quant(input, self._q_config.input, calibration_type)
+                set_calibrated_activation_quant(
+                    h_t, self._q_config.h0, calibration_type
+                )
+                set_calibrated_activation_quant(
+                    c_t, self._q_config.c0, calibration_type
+                )
+                set_calibrated_activation_quant(
+                    input, self._q_config.input, calibration_type
+                )
             h_t = apply_quantize(h_t, self._q_config.h0, apply_ste)
             c_t = apply_quantize(c_t, self._q_config.c0, apply_ste)
 
@@ -164,47 +186,88 @@ class FxPLSTM(LSTMTransparent):
 
                 # Projections (FxPLinear handles its own inner quant + optional calibration)
                 gates = self.w_ih(
-                    x_q, logger=logger,
-                    apply_ste=apply_ste, calibrate=calibrate, calibration_type=calibration_type
+                    x_q,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 ) + self.w_hh(
-                    h_t, logger=logger,
-                    apply_ste=apply_ste, calibrate=calibrate, calibration_type=calibration_type
+                    h_t,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
                 )
                 i_lin, f_lin, g_lin, o_lin = gates.chunk(4, dim=-1)
 
                 # Gate activations (FxP modules handle their own quant + optional calibration)
-                i = self.sigmoid_i(i_lin, logger=logger, apply_ste=apply_ste,
-                                   calibrate=calibrate, calibration_type=calibration_type)
-                f = self.sigmoid_f(f_lin, logger=logger, apply_ste=apply_ste,
-                                   calibrate=calibrate, calibration_type=calibration_type)
-                g = self.tanh_g(g_lin,    logger=logger, apply_ste=apply_ste,
-                                calibrate=calibrate, calibration_type=calibration_type)
-                o = self.sigmoid_o(o_lin, logger=logger, apply_ste=apply_ste,
-                                   calibrate=calibrate, calibration_type=calibration_type)
+                i = self.sigmoid_i(
+                    i_lin,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
+                f = self.sigmoid_f(
+                    f_lin,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
+                g = self.tanh_g(
+                    g_lin,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
+                o = self.sigmoid_o(
+                    o_lin,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
 
                 # Explicit intermediates with their own QTypes
                 f_dot_c_t = f * c_t
                 if calibrate:
-                    set_calibrated_activation_quant(f_dot_c_t, self._q_config.f_dot_c_t, calibration_type)
-                f_dot_c_t = apply_quantize(f_dot_c_t, self._q_config.f_dot_c_t, apply_ste)
+                    set_calibrated_activation_quant(
+                        f_dot_c_t, self._q_config.f_dot_c_t, calibration_type
+                    )
+                f_dot_c_t = apply_quantize(
+                    f_dot_c_t, self._q_config.f_dot_c_t, apply_ste
+                )
 
                 i_dot_g = i * g
                 if calibrate:
-                    set_calibrated_activation_quant(i_dot_g, self._q_config.i_dot_g, calibration_type)
+                    set_calibrated_activation_quant(
+                        i_dot_g, self._q_config.i_dot_g, calibration_type
+                    )
                 i_dot_g = apply_quantize(i_dot_g, self._q_config.i_dot_g, apply_ste)
 
                 # Cell update + quant
                 c_t = f_dot_c_t + i_dot_g
                 if calibrate:
-                    set_calibrated_activation_quant(c_t, self._q_config.c_t, calibration_type)
+                    set_calibrated_activation_quant(
+                        c_t, self._q_config.c_t, calibration_type
+                    )
                 c_t = apply_quantize(c_t, self._q_config.c_t, apply_ste)
 
                 # Hidden update: h = o * tanh(c)
-                ct_act = self.tanh_ct(c_t, logger=logger, apply_ste=apply_ste,
-                                      calibrate=calibrate, calibration_type=calibration_type)
+                ct_act = self.tanh_ct(
+                    c_t,
+                    logger=logger,
+                    apply_ste=apply_ste,
+                    calibrate=calibrate,
+                    calibration_type=calibration_type,
+                )
                 h_t = o * ct_act
                 if calibrate:
-                    set_calibrated_activation_quant(h_t, self._q_config.h_t, calibration_type)
+                    set_calibrated_activation_quant(
+                        h_t, self._q_config.h_t, calibration_type
+                    )
                 h_t = apply_quantize(h_t, self._q_config.h_t, apply_ste)
 
                 if logger:
@@ -228,7 +291,9 @@ class FxPLSTM(LSTMTransparent):
 
             output = torch.cat(outputs, dim=1)
             if calibrate:
-                set_calibrated_activation_quant(output, self._q_config.output, calibration_type)
+                set_calibrated_activation_quant(
+                    output, self._q_config.output, calibration_type
+                )
             output = apply_quantize(output, self._q_config.output, apply_ste)
             hn, cn = h_t.unsqueeze(0), c_t.unsqueeze(0)
 
@@ -244,38 +309,60 @@ class FxPLSTM(LSTMTransparent):
         self.w_ih.quantize_weights_bias()
         self.w_hh.quantize_weights_bias()
 
-    def set_high_precision_quant(self, same_wb: bool = False, same_fc: bool = False) -> None:
+    def set_high_precision_quant(
+        self, same_wb: bool = False, same_fc: bool = False
+    ) -> None:
         self.w_ih.set_high_precision_quant(same_wb)
         self.w_hh.set_high_precision_quant(same_wb)
         if same_fc:
             # unify total_bits for linears (weights & bias) like same_qkv
-            max_tb_w = max(self.w_ih.q_config.weight.total_bits,
-                           self.w_hh.q_config.weight.total_bits)
-            self.w_ih.q_config.weight.total_bits = self.w_hh.q_config.weight.total_bits = max_tb_w
-            max_tb_b = max(self.w_ih.q_config.bias.total_bits,
-                           self.w_hh.q_config.bias.total_bits)
-            self.w_ih.q_config.bias.total_bits = self.w_hh.q_config.bias.total_bits = max_tb_b
+            max_tb_w = max(
+                self.w_ih.q_config.weight.total_bits,
+                self.w_hh.q_config.weight.total_bits,
+            )
+            self.w_ih.q_config.weight.total_bits = (
+                self.w_hh.q_config.weight.total_bits
+            ) = max_tb_w
+            max_tb_b = max(
+                self.w_ih.q_config.bias.total_bits, self.w_hh.q_config.bias.total_bits
+            )
+            self.w_ih.q_config.bias.total_bits = self.w_hh.q_config.bias.total_bits = (
+                max_tb_b
+            )
 
-    def set_no_overflow_quant(self, same_wb: bool = False, same_fc: bool = False) -> None:
+    def set_no_overflow_quant(
+        self, same_wb: bool = False, same_fc: bool = False
+    ) -> None:
         self.w_ih.set_no_overflow_quant(same_wb)
         self.w_hh.set_no_overflow_quant(same_wb)
         if same_fc:
-            max_ib_w = max(self.w_ih.q_config.weight.integer_bits,
-                           self.w_hh.q_config.weight.integer_bits)
-            max_tb_w = max(self.w_ih.q_config.weight.total_bits,
-                           self.w_hh.q_config.weight.total_bits)
-            self.w_ih.q_config.weight.total_bits = self.w_hh.q_config.weight.total_bits = max_tb_w
-            self.w_ih.q_config.weight.fractional_bits = self.w_hh.q_config.weight.fractional_bits = (
-                max_tb_w - max_ib_w
+            max_ib_w = max(
+                self.w_ih.q_config.weight.integer_bits,
+                self.w_hh.q_config.weight.integer_bits,
             )
-            max_ib_b = max(self.w_ih.q_config.bias.integer_bits,
-                           self.w_hh.q_config.bias.integer_bits)
-            max_tb_b = max(self.w_ih.q_config.bias.total_bits,
-                           self.w_hh.q_config.bias.total_bits)
-            self.w_ih.q_config.bias.total_bits = self.w_hh.q_config.bias.total_bits = max_tb_b
-            self.w_ih.q_config.bias.fractional_bits = self.w_hh.q_config.bias.fractional_bits = (
-                max_tb_b - max_ib_b
+            max_tb_w = max(
+                self.w_ih.q_config.weight.total_bits,
+                self.w_hh.q_config.weight.total_bits,
             )
+            self.w_ih.q_config.weight.total_bits = (
+                self.w_hh.q_config.weight.total_bits
+            ) = max_tb_w
+            self.w_ih.q_config.weight.fractional_bits = (
+                self.w_hh.q_config.weight.fractional_bits
+            ) = max_tb_w - max_ib_w
+            max_ib_b = max(
+                self.w_ih.q_config.bias.integer_bits,
+                self.w_hh.q_config.bias.integer_bits,
+            )
+            max_tb_b = max(
+                self.w_ih.q_config.bias.total_bits, self.w_hh.q_config.bias.total_bits
+            )
+            self.w_ih.q_config.bias.total_bits = self.w_hh.q_config.bias.total_bits = (
+                max_tb_b
+            )
+            self.w_ih.q_config.bias.fractional_bits = (
+                self.w_hh.q_config.bias.fractional_bits
+            ) = max_tb_b - max_ib_b
 
     def set_min_mse_quant(self, depth: int = 10) -> None:
         self.w_ih.set_min_mse_quant(depth)

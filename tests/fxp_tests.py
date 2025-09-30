@@ -2460,7 +2460,9 @@ def test_fxp_sigmoid(
     print(f"Output1 shape: {output1.shape}")
 
     # 2) Explicit Float QConfig
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 2: Explicit Float QConfig " + "=" * 20)
+    print(
+        "\n" + "=" * 20 + " FxPSigmoid Scenario 2: Explicit Float QConfig " + "=" * 20
+    )
     logger.clear()
     float_qconfig = SigmoidQConfig()
     print(f"Explicit Float QConfig:\n{float_qconfig.model_dump_json(indent=2)}")
@@ -2472,11 +2474,18 @@ def test_fxp_sigmoid(
     print(f"Output2 shape: {output2.shape}")
 
     # 3) High Precision (Acts)
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 3: High Precision Config (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPSigmoid Scenario 3: High Precision Config (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     layer3_qconfig = SigmoidQConfig(
         input=QType(total_bits=32, fractional_bits=24, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=32, fractional_bits=30, q_method=QMethod.ROUND_SATURATE),  # [0,1]
+        activation=QType(
+            total_bits=32, fractional_bits=30, q_method=QMethod.ROUND_SATURATE
+        ),  # [0,1]
     )
     layer3 = FxPSigmoid(q_config=layer3_qconfig)
     layer3.eval()
@@ -2487,11 +2496,15 @@ def test_fxp_sigmoid(
     print(f"Output3 shape: {output3.shape}")
 
     # 4) No Overflow (T=16 Acts)
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 4: No Overflow (T=16 Acts) " + "=" * 20)
+    print(
+        "\n" + "=" * 20 + " FxPSigmoid Scenario 4: No Overflow (T=16 Acts) " + "=" * 20
+    )
     logger.clear()
     qconfig4 = SigmoidQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=16, fractional_bits=15, q_method=QMethod.ROUND_SATURATE),
+        activation=QType(
+            total_bits=16, fractional_bits=15, q_method=QMethod.ROUND_SATURATE
+        ),
     )
     print(f"Initial QConfig4:\n{qconfig4.model_dump_json(indent=2)}")
     layer4 = FxPSigmoid(q_config=qconfig4)
@@ -2502,11 +2515,15 @@ def test_fxp_sigmoid(
     print(f"Output4 shape: {output4.shape}")
 
     # 5) Mixed No Overflow (T=16/F=10 Input, T=8/F=7 Activation)
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 5: Mixed No Overflow (Acts) " + "=" * 20)
+    print(
+        "\n" + "=" * 20 + " FxPSigmoid Scenario 5: Mixed No Overflow (Acts) " + "=" * 20
+    )
     logger.clear()
     qconfig5 = SigmoidQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=8, fractional_bits=7, q_method=QMethod.ROUND_SATURATE),
+        activation=QType(
+            total_bits=8, fractional_bits=7, q_method=QMethod.ROUND_SATURATE
+        ),
     )
     print(f"QConfig5:\n{qconfig5.model_dump_json(indent=2)}")
     layer5 = FxPSigmoid(q_config=qconfig5)
@@ -2517,7 +2534,12 @@ def test_fxp_sigmoid(
     print(f"Output5 shape: {output5.shape}")
 
     # 6) Mixed No Overflow Calibrated
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 6: Mixed No Overflow Calibrated (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPSigmoid Scenario 6: Mixed No Overflow Calibrated (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     qconfig6 = SigmoidQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
@@ -2527,15 +2549,27 @@ def test_fxp_sigmoid(
     layer6.eval()
     print(f"QConfig6:\n{qconfig6.model_dump_json(indent=2)}")
     output6 = layer6(
-        calibration_dummy_input, logger=logger, calibrate=True, calibration_type="no_overflow"
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
     )
-    print(f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}")
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_sigmoid_mixed_no_overflow_calibration.json")
+    print(
+        f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
+    )
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_sigmoid_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"Output6 shape: {output6.shape}")
 
     # 7) Mixed MinMSE Calibrated
-    print("\n" + "=" * 20 + " FxPSigmoid Scenario 7: Mixed MinMSE Calibrated (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPSigmoid Scenario 7: Mixed MinMSE Calibrated (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     qconfig7 = SigmoidQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
@@ -2545,10 +2579,17 @@ def test_fxp_sigmoid(
     layer7.eval()
     print(f"QConfig7:\n{qconfig7.model_dump_json(indent=2)}")
     output7 = layer7(
-        calibration_dummy_input, logger=logger, calibrate=True, calibration_type="min_mse"
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
     )
-    print(f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}")
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_sigmoid_mixed_min_mse_calibration.json")
+    print(
+        f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+    )
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_sigmoid_mixed_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"Output7 shape: {output7.shape}")
 
@@ -2601,11 +2642,18 @@ def test_fxp_tanh(
     print(f"Output2 shape: {output2.shape}")
 
     # 3) High Precision (Acts)
-    print("\n" + "=" * 20 + " FxPTanh Scenario 3: High Precision Config (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPTanh Scenario 3: High Precision Config (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     layer3_qconfig = TanhQConfig(
         input=QType(total_bits=32, fractional_bits=24, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=32, fractional_bits=30, q_method=QMethod.ROUND_SATURATE),  # [-1,1]
+        activation=QType(
+            total_bits=32, fractional_bits=30, q_method=QMethod.ROUND_SATURATE
+        ),  # [-1,1]
     )
     layer3 = FxPTanh(q_config=layer3_qconfig)
     layer3.eval()
@@ -2620,7 +2668,9 @@ def test_fxp_tanh(
     logger.clear()
     qconfig4 = TanhQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=16, fractional_bits=14, q_method=QMethod.ROUND_SATURATE),  # allow 2 ints
+        activation=QType(
+            total_bits=16, fractional_bits=14, q_method=QMethod.ROUND_SATURATE
+        ),  # allow 2 ints
     )
     print(f"Initial QConfig4:\n{qconfig4.model_dump_json(indent=2)}")
     layer4 = FxPTanh(q_config=qconfig4)
@@ -2635,7 +2685,9 @@ def test_fxp_tanh(
     logger.clear()
     qconfig5 = TanhQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
-        activation=QType(total_bits=8, fractional_bits=6, q_method=QMethod.ROUND_SATURATE),  # [-1,1]
+        activation=QType(
+            total_bits=8, fractional_bits=6, q_method=QMethod.ROUND_SATURATE
+        ),  # [-1,1]
     )
     layer5 = FxPTanh(q_config=qconfig5)
     layer5.eval()
@@ -2646,7 +2698,12 @@ def test_fxp_tanh(
     print(f"Output5 shape: {output5.shape}")
 
     # 6) Mixed No Overflow Calibrated
-    print("\n" + "=" * 20 + " FxPTanh Scenario 6: Mixed No Overflow Calibrated (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPTanh Scenario 6: Mixed No Overflow Calibrated (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     qconfig6 = TanhQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
@@ -2656,15 +2713,27 @@ def test_fxp_tanh(
     layer6.eval()
     print(f"QConfig6:\n{qconfig6.model_dump_json(indent=2)}")
     output6 = layer6(
-        calibration_dummy_input, logger=logger, calibrate=True, calibration_type="no_overflow"
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="no_overflow",
     )
-    print(f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}")
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_tanh_mixed_no_overflow_calibration.json")
+    print(
+        f"\nLayer6 QConfig after calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
+    )
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_tanh_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"Output6 shape: {output6.shape}")
 
     # 7) Mixed MinMSE Calibrated
-    print("\n" + "=" * 20 + " FxPTanh Scenario 7: Mixed MinMSE Calibrated (Acts) " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPTanh Scenario 7: Mixed MinMSE Calibrated (Acts) "
+        + "=" * 20
+    )
     logger.clear()
     qconfig7 = TanhQConfig(
         input=QType(total_bits=16, fractional_bits=10, q_method=QMethod.ROUND_SATURATE),
@@ -2674,10 +2743,17 @@ def test_fxp_tanh(
     layer7.eval()
     print(f"QConfig7:\n{qconfig7.model_dump_json(indent=2)}")
     output7 = layer7(
-        calibration_dummy_input, logger=logger, calibrate=True, calibration_type="min_mse"
+        calibration_dummy_input,
+        logger=logger,
+        calibrate=True,
+        calibration_type="min_mse",
     )
-    print(f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}")
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_tanh_mixed_min_mse_calibration.json")
+    print(
+        f"\nLayer7 QConfig after calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+    )
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_tanh_mixed_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"Output7 shape: {output7.shape}")
 
@@ -2768,17 +2844,23 @@ def test_fxp_lstm(
     layer3.load_state_dict(base_state_dict)
     layer3.eval()
     layer3.set_high_precision_quant(same_wb=True, same_fc=True)
-    print(f"\nLayer3 QConfig after set_high_precision_quant:\n{layer3.q_config.model_dump_json(indent=2)}")
+    print(
+        f"\nLayer3 QConfig after set_high_precision_quant:\n{layer3.q_config.model_dump_json(indent=2)}"
+    )
     out3, (hn3, cn3) = layer3(dummy_input, logger=logger)
     log_path3 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_lstm_high_precision.json")
     logger.save_to_json(log_path3)
     print(f"Output3 shape: {out3.shape}, hn: {hn3.shape}, cn: {cn3.shape}")
 
     # 4) No Overflow (T=16 Params)
-    print("\n" + "=" * 20 + " FxPLSTM Scenario 4: No Overflow (T=16 Params) " + "=" * 20)
+    print(
+        "\n" + "=" * 20 + " FxPLSTM Scenario 4: No Overflow (T=16 Params) " + "=" * 20
+    )
     logger.clear()
     t16_param = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
-    t16_linear_cfg = LinearQConfig(weight=t16_param, bias=t16_param if BIAS else QType())
+    t16_linear_cfg = LinearQConfig(
+        weight=t16_param, bias=t16_param if BIAS else QType()
+    )
     qconfig4 = LSTMQConfig(
         w_ih=copy.deepcopy(t16_linear_cfg),
         w_hh=copy.deepcopy(t16_linear_cfg),
@@ -2795,7 +2877,9 @@ def test_fxp_lstm(
     layer4.load_state_dict(base_state_dict)
     layer4.eval()
     layer4.set_no_overflow_quant(same_wb=True, same_fc=True)
-    print(f"\nLayer4 QConfig after set_no_overflow_quant:\n{layer4.q_config.model_dump_json(indent=2)}")
+    print(
+        f"\nLayer4 QConfig after set_no_overflow_quant:\n{layer4.q_config.model_dump_json(indent=2)}"
+    )
     out4, (hn4, cn4) = layer4(dummy_input, logger=logger)
     log_path4 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_lstm_t16_no_overflow.json")
     logger.save_to_json(log_path4)
@@ -2852,14 +2936,21 @@ def test_fxp_lstm(
     layer5.load_state_dict(base_state_dict)
     layer5.eval()
     layer5.set_no_overflow_quant(same_wb=True, same_fc=True)
-    print(f"\nLayer5 QConfig after set_no_overflow_quant:\n{layer5.q_config.model_dump_json(indent=2)}")
+    print(
+        f"\nLayer5 QConfig after set_no_overflow_quant:\n{layer5.q_config.model_dump_json(indent=2)}"
+    )
     out5, (hn5, cn5) = layer5(dummy_input, logger=logger)
     log_path5 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_lstm_mixed_no_overflow.json")
     logger.save_to_json(log_path5)
     print(f"Output5 shape: {out5.shape}, hn: {hn5.shape}, cn: {cn5.shape}")
 
     # 6) Mixed No Overflow Calibrated (params 8-bit, others 16-bit)
-    print("\n" + "=" * 20 + " FxPLSTM Scenario 6: Mixed No Overflow Calibrated " + "=" * 20)
+    print(
+        "\n"
+        + "=" * 20
+        + " FxPLSTM Scenario 6: Mixed No Overflow Calibrated "
+        + "=" * 20
+    )
     logger.clear()
     t16_any = QType(total_bits=16, q_method=QMethod.ROUND_SATURATE)
     t8_param2 = QType(total_bits=8, q_method=QMethod.ROUND_SATURATE)
@@ -2889,7 +2980,7 @@ def test_fxp_lstm(
         o_act=copy.deepcopy(t16_sigmoid_cfg2),
         ct_tanh=copy.deepcopy(t16_tanh_cfg2),
         i_dot_g=copy.deepcopy(t16_any),
-        f_dot_c_t=copy.deepcopy(t16_any),        
+        f_dot_c_t=copy.deepcopy(t16_any),
         c_t=copy.deepcopy(t16_any),
         h_t=copy.deepcopy(t16_any),
         output=copy.deepcopy(t16_any),
@@ -2912,8 +3003,12 @@ def test_fxp_lstm(
         calibrate=True,
         calibration_type="no_overflow",
     )
-    print(f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}")
-    log_path6 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_lstm_mixed_no_overflow_calibration.json")
+    print(
+        f"\nLayer6 QConfig after set_no_overflow_quant and calibration:\n{layer6.q_config.model_dump_json(indent=2)}"
+    )
+    log_path6 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_lstm_mixed_no_overflow_calibration.json"
+    )
     logger.save_to_json(log_path6)
     print(f"Output6 shape: {out6.shape}, hn: {hn6.shape}, cn: {cn6.shape}")
 
@@ -2932,7 +3027,7 @@ def test_fxp_lstm(
         o_act=copy.deepcopy(t16_sigmoid_cfg2),
         ct_tanh=copy.deepcopy(t16_tanh_cfg2),
         i_dot_g=copy.deepcopy(t16_any),
-        f_dot_c_t=copy.deepcopy(t16_any),        
+        f_dot_c_t=copy.deepcopy(t16_any),
         c_t=copy.deepcopy(t16_any),
         h_t=copy.deepcopy(t16_any),
         output=copy.deepcopy(t16_any),
@@ -2955,8 +3050,12 @@ def test_fxp_lstm(
         calibrate=True,
         calibration_type="min_mse",
     )
-    print(f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}")
-    log_path7 = os.path.join(OUTPUTS_PATH_TESTS, "fxp_lstm_mixed_min_mse_calibration.json")
+    print(
+        f"\nLayer7 QConfig after set_min_mse_quant and min_mse calibration:\n{layer7.q_config.model_dump_json(indent=2)}"
+    )
+    log_path7 = os.path.join(
+        OUTPUTS_PATH_TESTS, "fxp_lstm_mixed_min_mse_calibration.json"
+    )
     logger.save_to_json(log_path7)
     print(f"Output7 shape: {out7.shape}, hn: {hn7.shape}, cn: {cn7.shape}")
 

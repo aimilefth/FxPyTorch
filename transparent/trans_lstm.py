@@ -10,6 +10,7 @@ from .trans_linear import LinearTransparent
 from .trans_sigmoid import SigmoidTransparent
 from .trans_tanh import TanhTransparent
 
+
 class LSTMTransparent(nn.Module):
     """
     A single-layer, unidirectional LSTM (batch_first only),
@@ -19,23 +20,27 @@ class LSTMTransparent(nn.Module):
     Forward signature mirrors torch.nn.LSTM: (input, hx=None) -> (output, (hn, cn))
     but also accepts logger= and **kwargs (ignored).
     """
+
     def __init__(
         self,
         input_size: int,
         hidden_size: int,
         bias: bool = True,
         batch_first: bool = True,
-        dropout: float = 0.0,      # kept for API parity (no effect for single layer)
+        dropout: float = 0.0,  # kept for API parity (no effect for single layer)
         bidirectional: bool = False,
         device=None,
         dtype=None,
         sigmoid_fun: nn.Module = SigmoidTransparent,
         tanh_fun: nn.Module = TanhTransparent,
-
     ) -> None:
         super().__init__()
-        assert batch_first, f"{self.__class__.__name__} works only with batch_first=True"
-        assert not bidirectional, f"{self.__class__.__name__} does not support bidirectional=True"
+        assert batch_first, (
+            f"{self.__class__.__name__} works only with batch_first=True"
+        )
+        assert not bidirectional, (
+            f"{self.__class__.__name__} does not support bidirectional=True"
+        )
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bias = bias
@@ -43,19 +48,23 @@ class LSTMTransparent(nn.Module):
 
         factory = {"device": device, "dtype": dtype}
         # input→4H and hidden→4H linear projections (separate biases like nn.LSTM)
-        self.w_ih = LinearTransparent(input_size, 4 * hidden_size, bias=bias, device=device, dtype=dtype)
-        self.w_hh = LinearTransparent(hidden_size, 4 * hidden_size, bias=bias, device=device, dtype=dtype)
+        self.w_ih = LinearTransparent(
+            input_size, 4 * hidden_size, bias=bias, device=device, dtype=dtype
+        )
+        self.w_hh = LinearTransparent(
+            hidden_size, 4 * hidden_size, bias=bias, device=device, dtype=dtype
+        )
 
         # gate activations
         self.sigmoid_i = sigmoid_fun()
         self.sigmoid_f = sigmoid_fun()
         self.sigmoid_o = sigmoid_fun()
-        self.tanh_g    = tanh_fun()
-        self.tanh_ct   = tanh_fun()
+        self.tanh_g = tanh_fun()
+        self.tanh_ct = tanh_fun()
 
     def forward(
         self,
-        input: torch.Tensor,                  # (B, T, input_size)
+        input: torch.Tensor,  # (B, T, input_size)
         hx: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         logger: Optional[ActivationLogger] = None,
         **kwargs,  # <- accept and ignore anything extra
@@ -91,7 +100,7 @@ class LSTMTransparent(nn.Module):
                 o = self.sigmoid_o(o_lin, logger=logger)
 
                 # cell / hidden updates
-                f_dot_c_t = f * c_t 
+                f_dot_c_t = f * c_t
                 i_dot_g = i * g
                 c_t = f_dot_c_t + i_dot_g
                 h_t = o * self.tanh_ct(c_t, logger=logger)
@@ -114,7 +123,7 @@ class LSTMTransparent(nn.Module):
 
                 outputs.append(h_t.unsqueeze(1))  # (B,1,H)
 
-            output = torch.cat(outputs, dim=1)   # (B, T, H)
+            output = torch.cat(outputs, dim=1)  # (B, T, H)
             hn, cn = h_t.unsqueeze(0), c_t.unsqueeze(0)  # (1,B,H)
 
             if logger:
